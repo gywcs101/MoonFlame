@@ -2,7 +2,9 @@
 package "gywcs101/moonflame"
 
 // Values
-pub fn aggregate(Array[Sample]) -> CallTree
+pub fn aggregate(Array[Sample], max_depth? : Int) -> CallTree
+
+pub fn deeper_placeholder() -> String
 
 pub fn parse_folded(String) -> ParseResult
 
