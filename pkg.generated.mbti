@@ -8,6 +8,10 @@ pub fn parse_folded(String) -> ParseResult
 
 pub fn parse_line(StringView) -> Sample?
 
+pub fn render_hotspots(Array[Hotspot], Double) -> String
+
+pub fn top_hotspots(CallTree, Int) -> Array[Hotspot]
+
 pub fn version() -> String
 
 // Errors
@@ -16,6 +20,13 @@ pub fn version() -> String
 pub struct CallTree {
   roots : Array[Node]
   total : Double
+} derive(Eq)
+
+pub struct Hotspot {
+  name : String
+  self_time : Double
+  ratio : Double
+  occurrences : Int
 } derive(Eq)
 
 pub struct Node {
