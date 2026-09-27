@@ -4,6 +4,8 @@ package "gywcs101/moonflame"
 // Values
 pub fn aggregate(Array[Sample], max_depth? : Int) -> CallTree
 
+pub fn color_hue(String) -> Int
+
 pub fn deeper_placeholder() -> String
 
 pub fn layout(CallTree, Double, Double) -> Layout
@@ -13,6 +15,8 @@ pub fn parse_folded(String) -> ParseResult
 pub fn parse_line(StringView) -> Sample?
 
 pub fn render_hotspots(Array[Hotspot], Double) -> String
+
+pub fn render_svg(Layout, min_width? : Double, font_size? : Double, show_labels? : Bool) -> String
 
 pub fn self_placeholder() -> String
 
@@ -38,10 +42,11 @@ pub struct Hotspot {
 pub struct Layout {
   rects : Array[Rect]
   width : Double
+  row_height : Double
   max_depth : Int
   total : Double
 } derive(Eq)
-pub fn Layout::height(Self, Double) -> Double
+pub fn Layout::height(Self) -> Double
 pub fn Layout::row_count(Self) -> Int
 
 pub struct Node {

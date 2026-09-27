@@ -28,3 +28,21 @@ fn find_rect(
     None => fail("rect not found: " + name)
   }
 }
+
+///|
+/// 统计子串出现的次数，用例里用来数 SVG 元素个数。
+fn count_of(text : String, needle : String) -> Int {
+  let step = if needle.length() > 0 { needle.length() } else { 1 }
+  let mut count = 0
+  let mut start = 0
+  while start <= text.length() {
+    match text[start:].find(needle) {
+      Some(offset) => {
+        count = count + 1
+        start = start + offset + step
+      }
+      None => start = text.length() + 1
+    }
+  }
+  count
+}

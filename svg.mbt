@@ -1,0 +1,174 @@
+///|
+/// SVG 渲染：把布局结果拼成 SVG 文本。
+///
+/// SVG 就是 XML 文本，用 `StringBuilder` 拼出来即可——不需要任何图形库，
+/// 也不需要 FFI。几个要点：
+///
+///   - **交互零成本**：把 `<title>` 作为矩形的子元素，浏览器会自动把它做成
+///     悬停提示，不写一行 JavaScript；
+///   - **颜色无语义**：色相由帧名的稳定哈希决定，只用于让相邻帧可区分；
+///     同名同色则让跨图对比时人眼容易追踪；
+///   - **矩形高度减 1 像素**，留出白缝，否则相邻帧会糊成一片；
+///   - **`viewBox` 与 `width`/`height` 分开写**，缩放时图形等比，矢量不失真；
+///   - **标签按预估宽度决定画不画**——SVG 不会自动排版，窄框里写字会溢出。
+
+///|
+/// 帧名到色相的映射，渲染器用它给同名帧着同一种颜色。
+///
+/// 刻意不用 `String::hash`：颜色必须跨运行、跨后端、跨语言版本保持稳定，
+/// 否则同一份输入会渲染出不同的图，快照测试便无从谈起。
+/// 这里只用乘加与掩码，所有中间值都落在 32 位安全范围内。
+pub fn color_hue(name : String) -> Int {
+  let mut h = 7
+  for c in name {
+    h = (h * 31 + Char::to_int(c)) & 0xFFFFFF
+  }
+  h % 360
+}
+
+///|
+/// XML 文本转义。`&` 必须最先替换，否则会把后面生成的实体二次转义。
+fn escape_xml(text : String) -> String {
+  text
+  .replace_all(old="&", new="&amp;")
+  .replace_all(old="<", new="&lt;")
+  .replace_all(old=">", new="&gt;")
+  .replace_all(old="\"", new="&quot;")
+}
+
+///|
+/// 坐标保留一位小数，用于字号、viewBox 等非边界的数值。
+fn coord(value : Double) -> String {
+  let scaled = (value * 10.0 + 0.5).to_int()
+  let whole = scaled / 10
+  let frac = scaled % 10
+  if frac == 0 {
+    whole.to_string()
+  } else {
+    "\{whole}.\{frac}"
+  }
+}
+
+///|
+/// 把坐标量化到 0.1 像素。
+///
+/// 相邻矩形**共用的边界会被量化成同一个整数**，因此画出来精确贴合，
+/// 不会因为各自四舍五入而留下亚像素裂缝——那种缝在图形被放大后是看得见的。
+/// 布局产出的坐标都非负，这里不处理负值。
+fn quantize(value : Double) -> Int {
+  (value * 10.0 + 0.5).to_int()
+}
+
+///|
+/// 由量化后的整数生成坐标文本。
+fn quantized_text(tenths : Int) -> String {
+  let whole = tenths / 10
+  let frac = tenths % 10
+  if frac == 0 {
+    whole.to_string()
+  } else {
+    "\{whole}.\{frac}"
+  }
+}
+
+///|
+/// 把布局渲染成 SVG 文本。
+///
+/// `min_width` 以下的矩形会被跳过（默认 0.5 像素）：布局给出的是精确几何，
+/// 但sub-pixel 的矩形画出来也看不见，只会白白撑大文件。
+///
+/// `show_labels` 控制是否在矩形内写帧名。SVG 无法测量文本宽度，
+/// 这里按字号粗略估算，估算宽度放不下就不画。
+pub fn render_svg(
+  layout : Layout,
+  min_width? : Double,
+  font_size? : Double,
+  show_labels? : Bool,
+) -> String {
+  let threshold = match min_width {
+    Some(value) => value
+    None => 0.5
+  }
+  let font = match font_size {
+    Some(value) => value
+    None => 11.0
+  }
+  let labels = match show_labels {
+    Some(value) => value
+    None => true
+  }
+  let height = layout.height()
+  let width_text = quantized_text(quantize(layout.width))
+  let height_text = quantized_text(quantize(height))
+  let sb = StringBuilder()
+  sb.write_string("<svg xmlns=\"http://www.w3.org/2000/svg\"")
+  sb.write_string(
+    " width=\"" + width_text + "\" height=\"" + height_text + "\"",
+  )
+  sb.write_string(" viewBox=\"0 0 " + width_text + " " + height_text + "\"")
+  sb.write_string(" font-family=\"monospace\">\n")
+  for rect in layout.rects {
+    if rect.width < threshold {
+      continue
+    }
+    // 高度减 1 留出白缝；行高过小时退化为不留缝，避免矩形消失
+    let box_height = if rect.height > 1.0 {
+      rect.height - 1.0
+    } else {
+      rect.height
+    }
+    // 边界先量化再求宽高：相邻矩形共用同一条边界，画出来必然贴合
+    let left = quantize(rect.x)
+    let right = quantize(rect.x + rect.width)
+    let top = quantize(rect.y)
+    let bottom = quantize(rect.y + box_height)
+    sb.write_string(
+      "<rect x=\"" +
+      quantized_text(left) +
+      "\" y=\"" +
+      quantized_text(top) +
+      "\"",
+    )
+    sb.write_string(
+      " width=\"" +
+      quantized_text(right - left) +
+      "\" height=\"" +
+      quantized_text(bottom - top) +
+      "\"",
+    )
+    sb.write_string(
+      " fill=\"hsl(" + color_hue(rect.name).to_string() + ",62%,68%)\"",
+    )
+    sb.write_string(" stroke=\"#fff\">")
+    // 悬停提示：零 JavaScript 的交互
+    let ratio = if layout.total > 0.0 { rect.value / layout.total } else { 0.0 }
+    sb.write_string(
+      "<title>" +
+      escape_xml(rect.name) +
+      " — " +
+      format_weight(rect.value) +
+      " (" +
+      format_percent(ratio) +
+      ")</title>",
+    )
+    sb.write_string("</rect>\n")
+    if labels {
+      let estimate = rect.name.char_length().to_double() * font * 0.6
+      if estimate + 6.0 <= rect.width {
+        let baseline = rect.y + (rect.height + font) / 2.0 - 1.0
+        sb.write_string(
+          "<text x=\"" +
+          quantized_text(left + 30) +
+          "\" y=\"" +
+          coord(baseline) +
+          "\"",
+        )
+        sb.write_string(" font-size=\"" + coord(font) + "\" fill=\"#1b1f2a\">")
+        sb.write_string(escape_xml(rect.name))
+        sb.write_string("</text>\n")
+      }
+    }
+  }
+  sb.write_string("</svg>\n")
+  sb.to_string()
+}

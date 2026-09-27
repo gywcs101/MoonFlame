@@ -75,7 +75,7 @@ test "maps depth to the vertical axis" {
   assert_eq(find_rect(l.rects, "c").y, 30.0)
   assert_eq(l.max_depth, 2)
   assert_eq(l.row_count(), 3)
-  assert_eq(l.height(15.0), 45.0)
+  assert_eq(l.height(), 45.0)
 }
 
 ///|
@@ -164,7 +164,7 @@ test "handles empty input" {
   let l = @moonflame.layout(tree_of("", 0), 800.0, 20.0)
   assert_eq(l.rects.length(), 0)
   assert_eq(l.row_count(), 0)
-  assert_eq(l.height(20.0), 0.0)
+  assert_eq(l.height(), 0.0)
 }
 
 ///|

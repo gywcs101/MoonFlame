@@ -27,11 +27,13 @@ pub struct Rect {
 } derive(Eq)
 
 ///|
-/// 布局结果。
+/// 布局结果。渲染器拿到的布局自带完整几何信息，无需再传画布参数。
 pub struct Layout {
   rects : Array[Rect]
   /// 画布宽度，与传入值一致
   width : Double
+  /// 每行高度，与传入值一致
+  row_height : Double
   /// 最深的深度下标（渲染高度为 `(max_depth + 1) * row_height`）
   max_depth : Int
   /// 全部权重之和，用于计算占比
@@ -158,7 +160,7 @@ pub fn layout(tree : CallTree, width : Double, row_height : Double) -> Layout {
       max_depth = rect.depth
     }
   }
-  { rects, width, max_depth, total: tree.total }
+  { rects, width, row_height, max_depth, total: tree.total }
 }
 
 ///|
@@ -173,6 +175,6 @@ pub fn Layout::row_count(self : Layout) -> Int {
 
 ///|
 /// 画布所需高度。
-pub fn Layout::height(self : Layout, row_height : Double) -> Double {
-  self.row_count().to_double() * row_height
+pub fn Layout::height(self : Layout) -> Double {
+  self.row_count().to_double() * self.row_height
 }
