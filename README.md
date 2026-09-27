@@ -266,7 +266,6 @@ moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o 
 ├── cmd/main/                     入口：读文件 → 调用核心库 → 写文件
 │
 ├── .github/workflows/ci.yml      持续集成（三平台 × 四后端 + 端到端出图）
-├── docs/                         项目申报书（Markdown 与 PDF 两个版本）
 ├── demo/                         演示负载（独立模块）
 │   ├── demo.mbt                  四点负载：排序 / 字符串 / 矩阵 / 递归
 │   └── reproduce.ps1             一键复现：编译 → 采样 → 转折叠栈
