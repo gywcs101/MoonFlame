@@ -174,9 +174,12 @@ moonflame/
 │
 ├── folded.mbt                   # 折叠栈解析
 ├── calltree.mbt                 # 调用树聚合 / 限深合并 / 差异标注
+├── unit.mbt                     # 权重单位与格式化（时间自动缩放、计数加千分位）
+├── names.mbt                    # 符号名归一化（__ 折叠 / 长度前缀 demangle）
 ├── hotspot.mbt                  # Top-N 热点报告
+├── report.mbt                   # 文本报告：调用关系 / 差异排行 / 栈过滤
 ├── layout.mbt                   # 矩形布局（火焰图 / 冰柱两种方向）
-├── svg.mbt                      # SVG 渲染（暖色 / 差异配色）
+├── svg.mbt                      # SVG 渲染（经典配色 + 内嵌交互脚本）
 ├── *_test.mbt                   # 黑盒测试
 │
 ├── cli/                         # 命令行参数解析（独立包，可单独测试）
@@ -186,7 +189,7 @@ moonflame/
 │   ├── demo.mbt                 # 4 个阶段：排序 / 字符串 / 矩阵 / 递归
 │   └── reproduce.ps1            # 一键复现：编译 → 采样 → 转折叠栈
 │
-├── examples/                    # CLI 生成的示例图
+├── examples/                    # 示例图（SVG 可交互，PNG 供 README 展示）
 └── testdata/
     ├── demo.folded              # ⭐ 主 demo 数据：32 栈 / 深度 3–13 / 1893ms
     ├── demo-baseline.folded     # 构造的基线，用于演示差异模式（非真实采样）
@@ -200,14 +203,22 @@ moonflame/
 **CLI 设计**：
 
 ```bash
-moonflame <input> --out flame.svg                    # 渲染
-moonflame <input> --top 10                           # 只输出文本热点
-moonflame <input> --max-depth 8 --inverted --width 1000
-moonflame diff <before> <after> --out diff.svg       # 差异火焰图
+moonflame <input> --out flame.svg                     # 渲染（默认命令）
+moonflame hotspots <input> --top 10                   # 热点榜
+moonflame callers  <input> <name>                     # 谁调用了它
+moonflame callees  <input> <name>                     # 它调用了谁
+moonflame diff     <before> <after> --out diff.svg    # 差异火焰图
+moonflame delta    <before> <after> --top 10          # 差异文本排行
+moonflame filter   <pattern> <input> -o sub.folded    # 栈过滤
+moonflame <input> --unit ms --max-depth 8 --inverted --width 1000
 ```
 
-顶层参数：`<input>`、`--out`、`--max-depth`、`--top`、`--width`、`--inverted`；
-`diff` 子命令自带 `<before> <after>` 与同一组绘制选项。
+**顶层只有 5 个选项/开关**：`<input>`（位置参数）、`--out`、`--max-depth`、`--width`、
+`--unit`、`--inverted`。一切**文本报告**都是子命令——这是让接口面不随功能增长的
+关键设计：新增分析能力时，顶层界面保持不变。原先的 `--top` 已移入 `hotspots`。
+
+`filter` 的输出是**折叠栈文本**而非图片，因此可以就地串起来：
+`filter ... -o sub.folded` 之后再用默认命令出图。
 
 ---
 
@@ -248,6 +259,23 @@ moonflame diff <before> <after> --out diff.svg       # 差异火焰图
 用 `<img src="x.svg">` 引用（GitHub 渲染 README 就是这么做的）时浏览器**不会运行其中的脚本**——
 这是 SVG 规范的既定行为，不是缺陷。因此 README 里嵌的图只有静态外观，
 要体验交互需把 `examples/flame.svg` 下载后直接打开。
+
+### 5c. 范围取舍记录
+
+功能增长过程中**主动放弃**的几项，理由记在这里，避免日后重复讨论：
+
+| 放弃的 | 理由 |
+| --- | --- |
+| **CLI 侧的正则匹配** | 若让 `filter` 支持正则，就得自己实现一个正则引擎（约 400+ 行，且边界情况极易出错）。改为**子串匹配**——等价于 `grep` 的默认行为，覆盖绝大多数真实用法，风险归零。需要正则时仍可用 `grep` 管道，而 SVG 内嵌的搜索**是**正则（浏览器自带引擎，零成本） |
+| `--json` 导出 | 需求较推测；且要先定一套稳定的格式契约，属于「有了真实消费方才做」的事 |
+| 多文件合并 | 价值中等，但会再引入一个顶层入口 |
+| 小帧合并（`--min-percent` → `(others)`） | 需要新参数；而渲染层已经按 `minwidth` 丢弃不可见矩形，视觉收益有限 |
+
+**行数与红线的冲突**：`AGENTS.md` 第 5 条要求核心库不超过 800 行，而比赛章程的项目规模
+参考值是 4~10k 有效代码行，两者方向相反。本项目选择向参考规模靠拢，当前核心库约 1379 行
+代码（其中 233 行是内嵌 JS 字面量）。若要守回 800 行，应**砍功能而不是注水**，
+可优先考虑：`report.mbt` 的 `callers`/`callees`（与 `hotspots` 有部分重叠）、
+`names.mbt` 的长度前缀还原（收益依数据形态而定）。
 
 ---
 

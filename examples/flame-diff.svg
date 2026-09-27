@@ -213,65 +213,65 @@ function wire() {
 <text id="details" x="10" y="261"> </text>
 <text id="matched" x="1290" y="261"> </text>
 <g id="frames">
-<g data-name="____moonbit__main"><title>____moonbit__main — 1893180600 (100.0%) -442685000</title><rect x="10" y="228" width="1380" height="15" fill="rgb(40,40,255)" rx="2" ry="2"/><text x="13" y="241">____moonbit__main</text></g>
-<g data-name="moonflame4demo13run__workload"><title>moonflame4demo13run__workload — 1893180600 (100.0%) -442685000</title><rect x="10" y="212" width="1380" height="15" fill="rgb(40,40,255)" rx="2" ry="2"/><text x="13" y="225">moonflame4demo13run__workload</text></g>
-<g data-name="moonflame::demo::bench__recursion"><title>moonflame::demo::bench__recursion — 871808200 (46.0%) 0</title><rect x="10" y="196" width="635.5" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="209">moonflame::demo::bench__recursion</text></g>
-<g data-name="moonflame::demo::walk__tree"><title>moonflame::demo::walk__tree — 871808200 (46.0%) 0</title><rect x="10" y="180" width="635.5" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="193">moonflame::demo::walk__tree</text></g>
-<g data-name="moonflame::demo::walk__tree"><title>moonflame::demo::walk__tree — 871808200 (46.0%) 0</title><rect x="10" y="164" width="635.5" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="177">moonflame::demo::walk__tree</text></g>
-<g data-name="moonflame::demo::walk__tree"><title>moonflame::demo::walk__tree — 871808200 (46.0%) 0</title><rect x="10" y="148" width="635.5" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="161">moonflame::demo::walk__tree</text></g>
-<g data-name="moonflame::demo::walk__tree"><title>moonflame::demo::walk__tree — 870087000 (46.0%) 0</title><rect x="10" y="132" width="634.2" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="145">moonflame::demo::walk__tree</text></g>
-<g data-name="moonflame::demo::walk__tree"><title>moonflame::demo::walk__tree — 862184700 (45.5%) 0</title><rect x="10" y="116" width="628.5" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="129">moonflame::demo::walk__tree</text></g>
-<g data-name="moonflame::demo::walk__tree"><title>moonflame::demo::walk__tree — 852914600 (45.1%) 0</title><rect x="10" y="100" width="621.7" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="113">moonflame::demo::walk__tree</text></g>
-<g data-name="moonflame::demo::walk__tree"><title>moonflame::demo::walk__tree — 820282400 (43.3%) 0</title><rect x="10" y="84" width="597.9" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="97">moonflame::demo::walk__tree</text></g>
-<g data-name="moonflame::demo::walk__tree"><title>moonflame::demo::walk__tree — 770414000 (40.7%) 0</title><rect x="10" y="68" width="561.6" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="81">moonflame::demo::walk__tree</text></g>
-<g data-name="moonflame::demo::walk__tree"><title>moonflame::demo::walk__tree — 658248100 (34.8%) 0</title><rect x="10" y="52" width="479.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="65">moonflame::demo::walk__tree</text></g>
-<g data-name="moonflame::demo::walk__tree"><title>moonflame::demo::walk__tree — 410228000 (21.7%) 0</title><rect x="10" y="36" width="299" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="49">moonflame::demo::walk__tree</text></g>
-<g data-name="(self)"><title>(self) — 248020100 (13.1%) 0</title><rect x="309" y="36" width="180.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="312" y="49">(self)</text></g>
-<g data-name="(self)"><title>(self) — 112165900 (5.9%) 0</title><rect x="489.8" y="52" width="81.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="492.8" y="65">(self)</text></g>
-<g data-name="(self)"><title>(self) — 49868400 (2.6%) 0</title><rect x="571.6" y="68" width="36.3" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 32632200 (1.7%) 0</title><rect x="607.9" y="84" width="23.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 9270100 (0.5%) 0</title><rect x="631.7" y="100" width="6.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 7902300 (0.4%) 0</title><rect x="638.5" y="116" width="5.7" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 1721200 (0.1%) 0</title><rect x="644.2" y="132" width="1.3" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="moonflame::demo::bench__strings"><title>moonflame::demo::bench__strings — 628099200 (33.2%) +104391000</title><rect x="645.5" y="196" width="457.8" height="15" fill="rgb(255,169,169)" rx="2" ry="2"/><text x="648.5" y="209">moonflame::demo::bench__strings</text></g>
-<g data-name="moonflame::demo::build__strings"><title>moonflame::demo::build__strings — 521955000 (27.6%) +104391000</title><rect x="645.5" y="180" width="380.5" height="15" fill="rgb(255,169,169)" rx="2" ry="2"/><text x="648.5" y="193">moonflame::demo::build__strings</text></g>
-<g data-name="(self)"><title>(self) — 343028900 (18.1%) +68605780</title><rect x="645.5" y="164" width="250" height="15" fill="rgb(255,183,183)" rx="2" ry="2"/><text x="648.5" y="177">(self)</text></g>
-<g data-name="moonbit.string_literal"><title>moonbit.string_literal — 146585700 (7.7%) +29317140</title><rect x="895.5" y="164" width="106.9" height="15" fill="rgb(255,198,198)" rx="2" ry="2"/></g>
-<g data-name="moonbit.add_string"><title>moonbit.add_string — 21144600 (1.1%) +4228920</title><rect x="1002.4" y="164" width="15.4" height="15" fill="rgb(255,208,208)" rx="2" ry="2"/></g>
-<g data-name="int::Int::to__string_2einner"><title>int::Int::to__string_2einner — 11195800 (0.6%) +2239160</title><rect x="1017.8" y="164" width="8.2" height="15" fill="rgb(255,209,209)" rx="2" ry="2"/></g>
-<g data-name="moonflame4demo13scan__strings"><title>moonflame4demo13scan__strings — 106144200 (5.6%) 0</title><rect x="1026" y="180" width="77.3" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="string::String::contains"><title>string::String::contains — 103046200 (5.4%) 0</title><rect x="1026" y="164" width="75.1" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="string::StringView::contains"><title>string::StringView::contains — 71639200 (3.8%) 0</title><rect x="1026" y="148" width="52.2" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="string::StringView::find"><title>string::StringView::find — 39810200 (2.1%) 0</title><rect x="1026" y="132" width="29" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="brute__force__find"><title>brute__force__find — 36676000 (1.9%) 0</title><rect x="1026" y="116" width="26.7" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="Eq::not__equal"><title>Eq::not__equal — 20570900 (1.1%) 0</title><rect x="1026" y="100" width="15" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="string::StringView::unsafe__get"><title>string::StringView::unsafe__get — 12857500 (0.7%) 0</title><rect x="1041" y="100" width="9.3" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 3247600 (0.2%) 0</title><rect x="1050.3" y="100" width="2.4" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 3134200 (0.2%) 0</title><rect x="1052.7" y="116" width="2.3" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 31829000 (1.7%) 0</title><rect x="1055" y="132" width="23.2" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 31407000 (1.7%) 0</title><rect x="1078.2" y="148" width="22.9" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 3098000 (0.2%) 0</title><rect x="1101.1" y="164" width="2.2" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="moonflame::demo::bench__sorting"><title>moonflame::demo::bench__sorting — 374500100 (19.8%) -547076000</title><rect x="1103.3" y="196" width="273" height="15" fill="rgb(0,0,255)" rx="2" ry="2"/><text x="1106.3" y="209">moonflame::demo::bench__sorting</text></g>
-<g data-name="moonflame::demo::bubble__sort"><title>moonflame::demo::bubble__sort — 273538000 (14.4%) -547076000</title><rect x="1103.3" y="180" width="199.4" height="15" fill="rgb(0,0,255)" rx="2" ry="2"/></g>
-<g data-name="array::Array::at"><title>array::Array::at — 145732100 (7.7%) -291464200</title><rect x="1103.3" y="164" width="106.3" height="15" fill="rgb(98,98,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 103620200 (5.5%) -207240400</title><rect x="1103.3" y="148" width="75.6" height="15" fill="rgb(130,130,255)" rx="2" ry="2"/><text x="1106.3" y="161">(self)</text></g>
-<g data-name="array::Array::buffer"><title>array::Array::buffer — 42111900 (2.2%) -84223800</title><rect x="1178.9" y="148" width="30.7" height="15" fill="rgb(177,177,255)" rx="2" ry="2"/></g>
-<g data-name="array5Array3set"><title>array5Array3set — 78119100 (4.1%) -156238200</title><rect x="1209.6" y="164" width="56.9" height="15" fill="rgb(150,150,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 52641100 (2.8%) -105282200</title><rect x="1209.6" y="148" width="38.3" height="15" fill="rgb(169,169,255)" rx="2" ry="2"/></g>
-<g data-name="array::Array::buffer"><title>array::Array::buffer — 25478000 (1.3%) -50956000</title><rect x="1247.9" y="148" width="18.6" height="15" fill="rgb(190,190,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 49686800 (2.6%) -99373600</title><rect x="1266.5" y="164" width="36.2" height="15" fill="rgb(171,171,255)" rx="2" ry="2"/></g>
-<g data-name="moonflame::demo::insertion__sort"><title>moonflame::demo::insertion__sort — 100962100 (5.3%) 0</title><rect x="1302.7" y="180" width="73.6" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="array::Array::at"><title>array::Array::at — 46303300 (2.4%) 0</title><rect x="1302.7" y="164" width="33.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 24634700 (1.3%) 0</title><rect x="1302.7" y="148" width="18" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="array::Array::buffer"><title>array::Array::buffer — 21668600 (1.1%) 0</title><rect x="1320.7" y="148" width="15.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="array5Array3set"><title>array5Array3set — 37373800 (2.0%) 0</title><rect x="1336.5" y="164" width="27.2" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 21676400 (1.1%) 0</title><rect x="1336.5" y="148" width="15.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="array::Array::buffer"><title>array::Array::buffer — 15697400 (0.8%) 0</title><rect x="1352.3" y="148" width="11.4" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 17285000 (0.9%) 0</title><rect x="1363.7" y="164" width="12.6" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="moonflame::demo::matmul"><title>moonflame::demo::matmul — 18773100 (1.0%) 0</title><rect x="1376.3" y="196" width="13.7" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="array::Array::at"><title>array::Array::at — 14148000 (0.7%) 0</title><rect x="1376.3" y="180" width="10.3" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="array::Array::buffer"><title>array::Array::buffer — 7859600 (0.4%) 0</title><rect x="1376.3" y="164" width="5.7" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 6288400 (0.3%) 0</title><rect x="1382" y="164" width="4.6" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 4625100 (0.2%) 0</title><rect x="1386.6" y="180" width="3.4" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="____moonbit__main"><title>____moonbit__main — 1.89 s (100.0%) -442.69 ms</title><rect x="10" y="228" width="1380" height="15" fill="rgb(40,40,255)" rx="2" ry="2"/><text x="13" y="241">____moonbit__main</text></g>
+<g data-name="moonflame::demo::run_workload"><title>moonflame::demo::run_workload — 1.89 s (100.0%) -442.69 ms&#10;原名: moonflame4demo13run__workload</title><rect x="10" y="212" width="1380" height="15" fill="rgb(40,40,255)" rx="2" ry="2"/><text x="13" y="225">moonflame::demo::run_workload</text></g>
+<g data-name="moonflame::demo::bench_recursion"><title>moonflame::demo::bench_recursion — 871.81 ms (46.0%) 0 ns&#10;原名: moonflame::demo::bench__recursion</title><rect x="10" y="196" width="635.5" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="209">moonflame::demo::bench_recursion</text></g>
+<g data-name="moonflame::demo::walk_tree"><title>moonflame::demo::walk_tree — 871.81 ms (46.0%) 0 ns&#10;原名: moonflame::demo::walk__tree</title><rect x="10" y="180" width="635.5" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="193">moonflame::demo::walk_tree</text></g>
+<g data-name="moonflame::demo::walk_tree"><title>moonflame::demo::walk_tree — 871.81 ms (46.0%) 0 ns&#10;原名: moonflame::demo::walk__tree</title><rect x="10" y="164" width="635.5" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="177">moonflame::demo::walk_tree</text></g>
+<g data-name="moonflame::demo::walk_tree"><title>moonflame::demo::walk_tree — 871.81 ms (46.0%) 0 ns&#10;原名: moonflame::demo::walk__tree</title><rect x="10" y="148" width="635.5" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="161">moonflame::demo::walk_tree</text></g>
+<g data-name="moonflame::demo::walk_tree"><title>moonflame::demo::walk_tree — 870.09 ms (46.0%) 0 ns&#10;原名: moonflame::demo::walk__tree</title><rect x="10" y="132" width="634.2" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="145">moonflame::demo::walk_tree</text></g>
+<g data-name="moonflame::demo::walk_tree"><title>moonflame::demo::walk_tree — 862.18 ms (45.5%) 0 ns&#10;原名: moonflame::demo::walk__tree</title><rect x="10" y="116" width="628.5" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="129">moonflame::demo::walk_tree</text></g>
+<g data-name="moonflame::demo::walk_tree"><title>moonflame::demo::walk_tree — 852.91 ms (45.1%) 0 ns&#10;原名: moonflame::demo::walk__tree</title><rect x="10" y="100" width="621.7" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="113">moonflame::demo::walk_tree</text></g>
+<g data-name="moonflame::demo::walk_tree"><title>moonflame::demo::walk_tree — 820.28 ms (43.3%) 0 ns&#10;原名: moonflame::demo::walk__tree</title><rect x="10" y="84" width="597.9" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="97">moonflame::demo::walk_tree</text></g>
+<g data-name="moonflame::demo::walk_tree"><title>moonflame::demo::walk_tree — 770.41 ms (40.7%) 0 ns&#10;原名: moonflame::demo::walk__tree</title><rect x="10" y="68" width="561.6" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="81">moonflame::demo::walk_tree</text></g>
+<g data-name="moonflame::demo::walk_tree"><title>moonflame::demo::walk_tree — 658.25 ms (34.8%) 0 ns&#10;原名: moonflame::demo::walk__tree</title><rect x="10" y="52" width="479.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="65">moonflame::demo::walk_tree</text></g>
+<g data-name="moonflame::demo::walk_tree"><title>moonflame::demo::walk_tree — 410.23 ms (21.7%) 0 ns&#10;原名: moonflame::demo::walk__tree</title><rect x="10" y="36" width="299" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="13" y="49">moonflame::demo::walk_tree</text></g>
+<g data-name="(self)"><title>(self) — 248.02 ms (13.1%) 0 ns</title><rect x="309" y="36" width="180.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="312" y="49">(self)</text></g>
+<g data-name="(self)"><title>(self) — 112.17 ms (5.9%) 0 ns</title><rect x="489.8" y="52" width="81.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/><text x="492.8" y="65">(self)</text></g>
+<g data-name="(self)"><title>(self) — 49.87 ms (2.6%) 0 ns</title><rect x="571.6" y="68" width="36.3" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 32.63 ms (1.7%) 0 ns</title><rect x="607.9" y="84" width="23.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 9.27 ms (0.5%) 0 ns</title><rect x="631.7" y="100" width="6.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 7.9 ms (0.4%) 0 ns</title><rect x="638.5" y="116" width="5.7" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 1.72 ms (0.1%) 0 ns</title><rect x="644.2" y="132" width="1.3" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="moonflame::demo::bench_strings"><title>moonflame::demo::bench_strings — 628.1 ms (33.2%) +104.39 ms&#10;原名: moonflame::demo::bench__strings</title><rect x="645.5" y="196" width="457.8" height="15" fill="rgb(255,169,169)" rx="2" ry="2"/><text x="648.5" y="209">moonflame::demo::bench_strings</text></g>
+<g data-name="moonflame::demo::build_strings"><title>moonflame::demo::build_strings — 521.96 ms (27.6%) +104.39 ms&#10;原名: moonflame::demo::build__strings</title><rect x="645.5" y="180" width="380.5" height="15" fill="rgb(255,169,169)" rx="2" ry="2"/><text x="648.5" y="193">moonflame::demo::build_strings</text></g>
+<g data-name="(self)"><title>(self) — 343.03 ms (18.1%) +68.61 ms</title><rect x="645.5" y="164" width="250" height="15" fill="rgb(255,183,183)" rx="2" ry="2"/><text x="648.5" y="177">(self)</text></g>
+<g data-name="moonbit.string_literal"><title>moonbit.string_literal — 146.59 ms (7.7%) +29.32 ms</title><rect x="895.5" y="164" width="106.9" height="15" fill="rgb(255,198,198)" rx="2" ry="2"/></g>
+<g data-name="moonbit.add_string"><title>moonbit.add_string — 21.14 ms (1.1%) +4.23 ms</title><rect x="1002.4" y="164" width="15.4" height="15" fill="rgb(255,208,208)" rx="2" ry="2"/></g>
+<g data-name="int::Int::to_string_2einner"><title>int::Int::to_string_2einner — 11.2 ms (0.6%) +2.24 ms&#10;原名: int::Int::to__string_2einner</title><rect x="1017.8" y="164" width="8.2" height="15" fill="rgb(255,209,209)" rx="2" ry="2"/></g>
+<g data-name="moonflame::demo::scan_strings"><title>moonflame::demo::scan_strings — 106.14 ms (5.6%) 0 ns&#10;原名: moonflame4demo13scan__strings</title><rect x="1026" y="180" width="77.3" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="string::String::contains"><title>string::String::contains — 103.05 ms (5.4%) 0 ns</title><rect x="1026" y="164" width="75.1" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="string::StringView::contains"><title>string::StringView::contains — 71.64 ms (3.8%) 0 ns</title><rect x="1026" y="148" width="52.2" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="string::StringView::find"><title>string::StringView::find — 39.81 ms (2.1%) 0 ns</title><rect x="1026" y="132" width="29" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="brute_force_find"><title>brute_force_find — 36.68 ms (1.9%) 0 ns&#10;原名: brute__force__find</title><rect x="1026" y="116" width="26.7" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="Eq::not_equal"><title>Eq::not_equal — 20.57 ms (1.1%) 0 ns&#10;原名: Eq::not__equal</title><rect x="1026" y="100" width="15" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="string::StringView::unsafe_get"><title>string::StringView::unsafe_get — 12.86 ms (0.7%) 0 ns&#10;原名: string::StringView::unsafe__get</title><rect x="1041" y="100" width="9.3" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 3.25 ms (0.2%) 0 ns</title><rect x="1050.3" y="100" width="2.4" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 3.13 ms (0.2%) 0 ns</title><rect x="1052.7" y="116" width="2.3" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 31.83 ms (1.7%) 0 ns</title><rect x="1055" y="132" width="23.2" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 31.41 ms (1.7%) 0 ns</title><rect x="1078.2" y="148" width="22.9" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 3.1 ms (0.2%) 0 ns</title><rect x="1101.1" y="164" width="2.2" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="moonflame::demo::bench_sorting"><title>moonflame::demo::bench_sorting — 374.5 ms (19.8%) -547.08 ms&#10;原名: moonflame::demo::bench__sorting</title><rect x="1103.3" y="196" width="273" height="15" fill="rgb(0,0,255)" rx="2" ry="2"/><text x="1106.3" y="209">moonflame::demo::bench_sorting</text></g>
+<g data-name="moonflame::demo::bubble_sort"><title>moonflame::demo::bubble_sort — 273.54 ms (14.4%) -547.08 ms&#10;原名: moonflame::demo::bubble__sort</title><rect x="1103.3" y="180" width="199.4" height="15" fill="rgb(0,0,255)" rx="2" ry="2"/></g>
+<g data-name="array::Array::at"><title>array::Array::at — 145.73 ms (7.7%) -291.46 ms</title><rect x="1103.3" y="164" width="106.3" height="15" fill="rgb(98,98,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 103.62 ms (5.5%) -207.24 ms</title><rect x="1103.3" y="148" width="75.6" height="15" fill="rgb(130,130,255)" rx="2" ry="2"/><text x="1106.3" y="161">(self)</text></g>
+<g data-name="array::Array::buffer"><title>array::Array::buffer — 42.11 ms (2.2%) -84.22 ms</title><rect x="1178.9" y="148" width="30.7" height="15" fill="rgb(177,177,255)" rx="2" ry="2"/></g>
+<g data-name="array::Array::set"><title>array::Array::set — 78.12 ms (4.1%) -156.24 ms&#10;原名: array5Array3set</title><rect x="1209.6" y="164" width="56.9" height="15" fill="rgb(150,150,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 52.64 ms (2.8%) -105.28 ms</title><rect x="1209.6" y="148" width="38.3" height="15" fill="rgb(169,169,255)" rx="2" ry="2"/></g>
+<g data-name="array::Array::buffer"><title>array::Array::buffer — 25.48 ms (1.3%) -50.96 ms</title><rect x="1247.9" y="148" width="18.6" height="15" fill="rgb(190,190,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 49.69 ms (2.6%) -99.37 ms</title><rect x="1266.5" y="164" width="36.2" height="15" fill="rgb(171,171,255)" rx="2" ry="2"/></g>
+<g data-name="moonflame::demo::insertion_sort"><title>moonflame::demo::insertion_sort — 100.96 ms (5.3%) 0 ns&#10;原名: moonflame::demo::insertion__sort</title><rect x="1302.7" y="180" width="73.6" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="array::Array::at"><title>array::Array::at — 46.3 ms (2.4%) 0 ns</title><rect x="1302.7" y="164" width="33.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 24.63 ms (1.3%) 0 ns</title><rect x="1302.7" y="148" width="18" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="array::Array::buffer"><title>array::Array::buffer — 21.67 ms (1.1%) 0 ns</title><rect x="1320.7" y="148" width="15.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="array::Array::set"><title>array::Array::set — 37.37 ms (2.0%) 0 ns&#10;原名: array5Array3set</title><rect x="1336.5" y="164" width="27.2" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 21.68 ms (1.1%) 0 ns</title><rect x="1336.5" y="148" width="15.8" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="array::Array::buffer"><title>array::Array::buffer — 15.7 ms (0.8%) 0 ns</title><rect x="1352.3" y="148" width="11.4" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 17.29 ms (0.9%) 0 ns</title><rect x="1363.7" y="164" width="12.6" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="moonflame::demo::matmul"><title>moonflame::demo::matmul — 18.77 ms (1.0%) 0 ns</title><rect x="1376.3" y="196" width="13.7" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="array::Array::at"><title>array::Array::at — 14.15 ms (0.7%) 0 ns</title><rect x="1376.3" y="180" width="10.3" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="array::Array::buffer"><title>array::Array::buffer — 7.86 ms (0.4%) 0 ns</title><rect x="1376.3" y="164" width="5.7" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 6.29 ms (0.3%) 0 ns</title><rect x="1382" y="164" width="4.6" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 4.63 ms (0.2%) 0 ns</title><rect x="1386.6" y="180" width="3.4" height="15" fill="rgb(255,255,255)" rx="2" ry="2"/></g>
 </g>
 </svg>

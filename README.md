@@ -18,7 +18,7 @@
 - [主要功能](#主要功能)
 - [快速验证](#快速验证)
 - [完整流程](#完整流程)
-- [命令行参数](#命令行参数)
+- [命令行](#命令行)
 - [差异火焰图](#差异火焰图)
 - [已知限制](#已知限制)
 - [目录结构](#目录结构)
@@ -58,7 +58,7 @@ MoonFlame 补的是「**单文件、零环境、可归档**」这一空缺。
 | **布局** | 火焰图（根在底部）/ 冰柱图两种方向；按值比例切分，父宽严格等于子宽之和 |
 | **可交互 SVG** | 经典火焰图配色 + 内嵌脚本：悬停信息栏、点击缩放、`Reset Zoom`、`Ctrl-F` 正则搜索、`Ctrl-I` 大小写开关、命中占比 |
 | **差异火焰图** | 对比两份剖面，**红 = 变多、蓝 = 变少、白 = 无变化** |
-| **文本热点报告** | `--top N` 直接打印 Top-N 自身耗时，不需要出图 |
+| **文本报告** | `hotspots` / `callers` / `callees` / `delta` 四个子命令，回答「谁最慢」「谁调用它」「它调用谁」「这次改动让什么变慢了」 |
 | **确定性输出** | 同一输入必得逐字节相同的 SVG，可做快照测试与版本间对比 |
 | **零依赖核心库** | 根包纯计算、无任何外部依赖；文件 IO 只出现在命令行入口 |
 
@@ -77,7 +77,7 @@ moon run cmd/main -- testdata/demo.folded --out flame.svg
 然后用浏览器打开 `flame.svg`。想看文本热点、不出图：
 
 ```powershell
-moon run cmd/main -- testdata/demo.folded --top 10
+moon run cmd/main -- hotspots testdata/demo.folded --top 10
 ```
 
 仓库还带了两个用例，可以直接跑：
@@ -126,21 +126,76 @@ powershell demo/reproduce.ps1     # 编译 → 采样 → 转折叠栈 → 打�
 > 采样有随机性：重跑会得到不同的栈数与总耗时（实测行数 32–36、总耗时 1887–1917 ms），但**热点排序稳定**。
 > 折叠栈里**一行 = 一个不同的调用栈**，重复出现的栈会被合并、权重累加，所以文件 32 行而原始样本有 490 个。
 
-## 命令行参数
+## 命令行
+
+**默认命令只负责出一张图**；一切文本报告都是子命令——这样顶层选项不会随功能增长而膨胀。
 
 ```text
-moon run cmd/main -- <input> [options]        默认渲染模式
-moon run cmd/main -- diff <before> <after> [options]
+moon run cmd/main -- <input> [options]                     出图（默认）
+moon run cmd/main -- hotspots  <input> [--top N]           热点榜
+moon run cmd/main -- callers   <input> <name>              谁调用了它
+moon run cmd/main -- callees   <input> <name>              它调用了谁
+moon run cmd/main -- diff      <before> <after> [-o out]   差异火焰图
+moon run cmd/main -- delta     <before> <after> [--top N]  差异文本排行
+moon run cmd/main -- filter    <pattern> <input> [-o out]  栈过滤
 ```
+
+顶层选项（默认命令）：
 
 | 参数 | 默认 | 说明 |
 | --- | --- | --- |
 | `<input>` | 必填 | 折叠栈文件 |
-| `-o, --out <path>` | 不输出 | SVG 输出路径；不传则只打印报告 |
-| `--top <n>` | — | 打印前 N 个热点，可与 `--out` 同时用 |
+| `-o, --out <path>` | 标准输出 | 输出路径；不传就打到标准输出 |
 | `--max-depth <n>` | `32` | 每个栈最多保留的帧数，`0` 表示不限制 |
 | `--width <px>` | `1400` | 画布宽度 |
+| `--unit <u>` | `ns` | 权重单位：`ns` / `us` / `ms` / `s` / `count` |
 | `--inverted` | 关 | 输出冰柱方向（根在顶部）；默认是火焰图方向（根在底部） |
+
+> **为什么需要 `--unit`？** 折叠栈的第 2 列是**不透明的权重**：`moon-pprof` 给纳秒，
+> `perf` / `py-spy` 给采样计数。数值本身区分不出来（`42` 既可能是 42 纳秒也可能是 42 次采样），
+> 所以由你声明。时间会按数量级自动缩放（`871808200` → `871.81 ms`），计数则加千位分隔、不带后缀。
+
+### 文本报告
+
+```powershell
+moon run cmd/main -- hotspots testdata/demo.folded --top 5
+moon run cmd/main -- callers  testdata/demo.folded walk_tree
+moon run cmd/main -- callees  testdata/demo.folded build_strings
+moon run cmd/main -- delta    testdata/demo-baseline.folded testdata/demo.folded
+```
+
+`callers` / `callees` **按直接调用者聚合**，而不是把每条完整调用链列一行——递归函数会产生大量
+几乎相同的长链，全列出来反而看不出「到底是谁在调用它」。查询名会先做归一化再按子串匹配，
+所以 `walk_tree`、`walk__tree`、`demo::walk` 都能命中。
+
+`delta` 与差异火焰图互补：**图看结构**（哪条路径变宽了），**表看函数**（哪个函数的自身耗时变了多少）。
+只在其中一侧出现的函数也会列出（另一侧记 0），因为「新增的开销」和「消失的开销」恰恰是差异分析最关心的。
+
+`filter` 是经典的 `grep funcA input | flamegraph.pl` 用法，但省掉了管道——
+输出仍是折叠栈格式，可以直接再喂给出图命令：
+
+```powershell
+moon run cmd/main -- filter build_strings testdata/demo.folded -o sub.folded
+moon run cmd/main -- sub.folded --out sub.svg
+```
+
+权重要原样保留、不做归一化：过滤后的图回答的是「这个子系统内部怎么分配时间」，
+而它占全局多少，靠保留原始权重才能和原图对照。
+
+### 名称归一化
+
+上游的符号还原并不完整，真实数据里几种形态并存。渲染层会自动归一化（**解析层始终原样保留，数据不会被改写**）：
+
+| 数据里的样子 | 显示为 |
+| --- | --- |
+| `moonflame::demo::build__strings` | `build_strings` |
+| `moonflame4demo13run__workload` | `moonflame::demo::run_workload` |
+| `array5Array3set` | `array::Array::set` |
+| `____moonbit__main` | 不变（下划线开头不做折叠） |
+
+长度前缀的还原是**自校验**的：每段声明的长度必须与实际字符数完全吻合，否则放弃。
+`sha256_finalize`、`utf16le`、`base64encode` 这类名字不会被误改。
+工具提示里会附上**原名**，信息不丢失。
 
 ### 交互与配色
 
