@@ -23,6 +23,14 @@ pub struct Node {
 } derive(Eq)
 
 ///|
+/// 显式声明 `Eq` 的两个方法可被当作常规方法调用。
+///
+/// 新版编译器（moonc 0.10.14 起）不再自动把 `impl Eq` 的方法提升为常规方法，
+/// 不声明就会报 `implicit_impl_as_method` 废弃警告。这条声明把该提升写明，
+/// 行为与过去一致；配合 CI 的「警告即失败」，也避免未来默认行为变更后突然失效。
+pub extend Node with Eq::{not_equal, equal}
+
+///|
 /// 聚合结果。
 pub struct CallTree {
   /// 根节点，已排序。格式允许出现多个根（如多线程采样），真实数据通常只有一个
@@ -30,6 +38,12 @@ pub struct CallTree {
   /// 所有样本权重之和
   total : Double
 } derive(Eq)
+
+///|
+/// 显式声明 `Eq` 的方法可被当作常规方法调用。
+///
+/// 新版编译器不再自动完成这个提升，不声明会报 `implicit_impl_as_method`。
+pub extend CallTree with Eq::{not_equal, equal}
 
 ///|
 /// 构建期的可变节点。
@@ -43,7 +57,7 @@ priv struct Builder {
 
 ///|
 fn Builder::new(name : String) -> Builder {
-  { name, value: 0.0, children: Map([]) }
+  { name, value: 0.0, children: Map([]), }
 }
 
 ///|
@@ -118,7 +132,7 @@ fn Builder::materialize(self : Builder) -> Node {
     children.push(pair.1.materialize())
   }
   children.sort_by(compare_nodes)
-  { name: self.name, value: self.value, children, delta: None }
+  { name: self.name, value: self.value, children, delta: None, }
 }
 
 ///|
@@ -163,7 +177,7 @@ fn annotate(nodes : Array[Node], baseline : Array[Node]) -> Array[Node] {
 /// 这与参考实现 `difffolded.pl` 的取舍一致（它的建议是交换两份文件再生成一张，
 /// 从另一个方向看消失的帧）。
 pub fn diff_against(tree : CallTree, baseline : CallTree) -> CallTree {
-  { roots: annotate(tree.roots, baseline.roots), total: tree.total }
+  { roots: annotate(tree.roots, baseline.roots), total: tree.total, }
 }
 
 ///|
@@ -221,7 +235,7 @@ pub fn aggregate(samples : Array[Sample], max_depth? : Int) -> CallTree {
     roots.push(pair.1.materialize())
   }
   roots.sort_by(compare_nodes)
-  { roots, total }
+  { roots, total, }
 }
 
 ///|

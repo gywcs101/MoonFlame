@@ -2,6 +2,4 @@ import {
   "moonflame/demo",
 }
 
-options(
-  "is-main": true,
-)
+pkgtype(kind: "executable")

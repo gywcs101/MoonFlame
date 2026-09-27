@@ -1,10 +1,6 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "gywcs101/moonflame"
 
-import {
-  "moonbitlang/core/debug",
-}
-
 // Values
 pub const BASE_FONT_SIZE : Double = 12.0
 
@@ -67,7 +63,9 @@ pub struct CallTree {
   roots : Array[Node]
   total : Double
 } derive(Eq)
+pub fn CallTree::equal(Self, Self) -> Bool
 pub fn CallTree::max_delta(Self) -> Double
+pub fn CallTree::not_equal(Self, Self) -> Bool
 
 pub struct DeltaEntry {
   name : String
@@ -76,6 +74,8 @@ pub struct DeltaEntry {
   change : Double
   ratio : Double
 } derive(Eq)
+pub fn DeltaEntry::equal(Self, Self) -> Bool
+pub fn DeltaEntry::not_equal(Self, Self) -> Bool
 
 pub struct Hotspot {
   name : String
@@ -83,6 +83,8 @@ pub struct Hotspot {
   ratio : Double
   occurrences : Int
 } derive(Eq)
+pub fn Hotspot::equal(Self, Self) -> Bool
+pub fn Hotspot::not_equal(Self, Self) -> Bool
 
 pub struct Layout {
   rects : Array[Rect]
@@ -93,7 +95,9 @@ pub struct Layout {
   max_delta : Double
   inverted : Bool
 } derive(Eq)
+pub fn Layout::equal(Self, Self) -> Bool
 pub fn Layout::height(Self) -> Double
+pub fn Layout::not_equal(Self, Self) -> Bool
 pub fn Layout::row_count(Self) -> Int
 
 pub struct Node {
@@ -103,6 +107,8 @@ pub struct Node {
   delta : Double?
 } derive(Eq)
 pub fn Node::child(Self, String) -> Self?
+pub fn Node::equal(Self, Self) -> Bool
+pub fn Node::not_equal(Self, Self) -> Bool
 pub fn Node::self_ratio(Self, Double) -> Double
 pub fn Node::self_time(Self) -> Double
 
@@ -110,6 +116,8 @@ pub struct ParseResult {
   samples : Array[Sample]
   skipped_lines : Int
 } derive(Eq)
+pub fn ParseResult::equal(Self, Self) -> Bool
+pub fn ParseResult::not_equal(Self, Self) -> Bool
 
 pub struct Rect {
   x : Double
@@ -121,17 +129,23 @@ pub struct Rect {
   depth : Int
   delta : Double?
 } derive(Eq)
+pub fn Rect::equal(Self, Self) -> Bool
+pub fn Rect::not_equal(Self, Self) -> Bool
 
 pub struct Relation {
   label : String
   value : Double
   ratio : Double
 } derive(Eq)
+pub fn Relation::equal(Self, Self) -> Bool
+pub fn Relation::not_equal(Self, Self) -> Bool
 
 pub struct Sample {
   frames : Array[String]
   weight : Double
 } derive(Eq)
+pub fn Sample::equal(Self, Self) -> Bool
+pub fn Sample::not_equal(Self, Self) -> Bool
 
 pub(all) enum WeightUnit {
   Count
@@ -139,11 +153,12 @@ pub(all) enum WeightUnit {
   Microseconds
   Milliseconds
   Seconds
-} derive(Eq, @debug.Debug)
+} derive(Eq)
+pub fn WeightUnit::equal(Self, Self) -> Bool
 pub fn WeightUnit::label(Self) -> String
+pub fn WeightUnit::not_equal(Self, Self) -> Bool
 pub fn WeightUnit::parse(String) -> Self?
 
 // Type aliases
 
 // Traits
-

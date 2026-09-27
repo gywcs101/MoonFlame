@@ -17,6 +17,12 @@ pub struct Relation {
 } derive(Eq)
 
 ///|
+/// 显式声明 `Eq` 的方法可被当作常规方法调用。
+///
+/// 新版编译器不再自动完成这个提升，不声明会报 `implicit_impl_as_method`。
+pub extend Relation with Eq::{not_equal, equal}
+
+///|
 /// 按权重降序、同值按标签升序，保证输出确定。
 fn compare_relations(a : Relation, b : Relation) -> Int {
   if a.value > b.value {
@@ -175,6 +181,12 @@ pub struct DeltaEntry {
   /// 变化量占基线总量的比例
   ratio : Double
 } derive(Eq)
+
+///|
+/// 显式声明 `Eq` 的方法可被当作常规方法调用。
+///
+/// 新版编译器不再自动完成这个提升，不声明会报 `implicit_impl_as_method`。
+pub extend DeltaEntry with Eq::{not_equal, equal}
 
 ///|
 /// 按变化量降序（变慢最多的在前），同值按名字升序。

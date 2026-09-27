@@ -23,11 +23,23 @@ pub struct Sample {
 } derive(Eq)
 
 ///|
+/// 显式声明 `Eq` 的方法可被当作常规方法调用。
+///
+/// 新版编译器不再自动完成这个提升，不声明会报 `implicit_impl_as_method`。
+pub extend Sample with Eq::{not_equal, equal}
+
+///|
 /// 解析结果。`skipped_lines` 记录非空但无法解析的行数，便于调用方提示用户。
 pub struct ParseResult {
   samples : Array[Sample]
   skipped_lines : Int
 } derive(Eq)
+
+///|
+/// 显式声明 `Eq` 的方法可被当作常规方法调用。
+///
+/// 新版编译器不再自动完成这个提升，不声明会报 `implicit_impl_as_method`。
+pub extend ParseResult with Eq::{not_equal, equal}
 
 ///|
 /// 解析权重。无法解析或为非有限值（NaN / Inf）时返回 `None`——
@@ -67,7 +79,7 @@ pub fn parse_line(line : StringView) -> Sample? {
     frames.push(if name.is_empty() { "(root)" } else { name.to_owned() })
   }
   guard frames.length() > 0 else { return None }
-  Some({ frames, weight })
+  Some({ frames, weight, })
 }
 
 ///|
@@ -83,5 +95,5 @@ pub fn parse_folded(text : String) -> ParseResult {
       None => if !line.is_blank() { skipped = skipped + 1 }
     }
   }
-  { samples, skipped_lines: skipped }
+  { samples, skipped_lines: skipped, }
 }

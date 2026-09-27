@@ -24,7 +24,13 @@ pub(all) enum WeightUnit {
   Microseconds
   Milliseconds
   Seconds
-} derive(Eq, Debug)
+} derive(Eq)
+
+///|
+/// 显式声明 `Eq` 的方法可被当作常规方法调用。
+///
+/// 新版编译器不再自动完成这个提升，不声明会报 `implicit_impl_as_method`。
+pub extend WeightUnit with Eq::{not_equal, equal}
 
 ///|
 /// 从命令行文本解析单位。无法识别时返回 `None`。

@@ -31,6 +31,8 @@ pub(all) enum Action {
   Delta(Int)
   Filter(String)
 } derive(Eq)
+pub fn Action::equal(Self, Self) -> Bool
+pub fn Action::not_equal(Self, Self) -> Bool
 
 pub struct Config {
   action : Action
@@ -42,8 +44,9 @@ pub struct Config {
   unit : @moonflame.WeightUnit
   inverted : Bool
 } derive(Eq)
+pub fn Config::equal(Self, Self) -> Bool
+pub fn Config::not_equal(Self, Self) -> Bool
 
 // Type aliases
 
 // Traits
-

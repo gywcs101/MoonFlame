@@ -28,6 +28,12 @@ pub(all) enum Action {
 } derive(Eq)
 
 ///|
+/// 显式声明 `Eq` 的方法可被当作常规方法调用。
+///
+/// 新版编译器不再自动完成这个提升，不声明会报 `implicit_impl_as_method`。
+pub extend Action with Eq::{not_equal, equal}
+
+///|
 /// 解析后的命令配置。
 pub struct Config {
   /// 要执行的动作
@@ -47,6 +53,12 @@ pub struct Config {
   /// 冰柱方向（根在顶部）；默认为火焰图方向（根在底部）
   inverted : Bool
 } derive(Eq)
+
+///|
+/// 显式声明 `Eq` 的方法可被当作常规方法调用。
+///
+/// 新版编译器不再自动完成这个提升，不声明会报 `implicit_impl_as_method`。
+pub extend Config with Eq::{not_equal, equal}
 
 ///|
 /// 默认深度上限：真实递归栈可达数千层，不限深画出来的图没法看。
@@ -340,7 +352,7 @@ pub fn parse_config(argv : ArrayView[String]) -> Config raise {
       match name {
         "diff" => {
           let (before, after) = two_files(values)
-          { ..base, action: Diff, input: after, second: Some(before) }
+          { ..base, action: Diff, input: after, second: Some(before), }
         }
         "delta" => {
           let (before, after) = two_files(values)
@@ -370,13 +382,13 @@ pub fn parse_config(argv : ArrayView[String]) -> Config raise {
           } else {
             Callees(wanted)
           }
-          { ..base, action, input }
+          { ..base, action, input, }
         }
         "filter" => {
           guard values is { "pattern": [pattern], "input": [input], .. } else {
             fail("filter needs a pattern and a folded stack file")
           }
-          { ..base, action: Filter(pattern), input }
+          { ..base, action: Filter(pattern), input, }
         }
         _ => fail("unknown subcommand: " + name)
       }

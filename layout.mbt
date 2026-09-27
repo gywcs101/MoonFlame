@@ -31,6 +31,12 @@ pub struct Rect {
 } derive(Eq)
 
 ///|
+/// 显式声明 `Eq` 的方法可被当作常规方法调用。
+///
+/// 新版编译器不再自动完成这个提升，不声明会报 `implicit_impl_as_method`。
+pub extend Rect with Eq::{not_equal, equal}
+
+///|
 /// 布局结果。渲染器拿到的布局自带完整几何信息，无需再传画布参数。
 pub struct Layout {
   rects : Array[Rect]
@@ -48,6 +54,12 @@ pub struct Layout {
   /// 交互脚本判断「祖先在上还是在下」时需要它。
   inverted : Bool
 } derive(Eq)
+
+///|
+/// 显式声明 `Eq` 的方法可被当作常规方法调用。
+///
+/// 新版编译器不再自动完成这个提升，不声明会报 `implicit_impl_as_method`。
+pub extend Layout with Eq::{not_equal, equal}
 
 ///|
 /// 「自身耗时」合成帧的名字。
@@ -106,11 +118,11 @@ fn layout_node(
   // 再套一层 `(self)` 只会白白加深一层、徒增矩形。
   let items : Array[Item] = []
   for child in node.children {
-    items.push({ name: child.name, value: child.value, node: Some(child) })
+    items.push({ name: child.name, value: child.value, node: Some(child), })
   }
   let own = node.self_time()
   if own > 0.0 && items.length() > 0 {
-    items.push({ name: self_placeholder(), value: own, node: None })
+    items.push({ name: self_placeholder(), value: own, node: None, })
   }
   // 自身耗时的变化量 = 本节点的变化量 − 子节点变化量之和。
   // 任一子节点没有变化量（非差异模式）时，合成项也不带变化量。

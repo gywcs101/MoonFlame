@@ -22,6 +22,12 @@ pub struct Hotspot {
 } derive(Eq)
 
 ///|
+/// 显式声明 `Eq` 的方法可被当作常规方法调用。
+///
+/// 新版编译器不再自动完成这个提升，不声明会报 `implicit_impl_as_method`。
+pub extend Hotspot with Eq::{not_equal, equal}
+
+///|
 /// 聚合用的可变累加器。
 priv struct Acc {
   mut self_time : Double
@@ -37,7 +43,7 @@ fn collect(node : Node, acc : Map[String, Acc]) -> Unit {
       existing.self_time = existing.self_time + own
       existing.occurrences = existing.occurrences + 1
     }
-    None => acc.set(node.name, { self_time: own, occurrences: 1 })
+    None => acc.set(node.name, { self_time: own, occurrences: 1, })
   }
   for child in node.children {
     collect(child, acc)
