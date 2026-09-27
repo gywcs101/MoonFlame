@@ -1,0 +1,7 @@
+import {
+  "gywcs101/moonflame",
+}
+
+options(
+  "is-main": true,
+)
