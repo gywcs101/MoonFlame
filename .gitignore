@@ -19,6 +19,13 @@ demo/*.wasm
 # 由 examples/*.svg 派生，仅为方便查看，不入库
 examples/*.png
 
+# ---------- 快速开始时落在仓库根目录的临时产物 ----------
+# README 的示例命令用 --out flame.svg / -o flame-diff.svg，
+# 照做就会在根目录留下这两个文件；正式示例图以 examples/ 为准
+/flame.svg
+/flame-diff.svg
+/out.svg
+
 # ---------- 编辑器 / 系统 ----------
 .vscode/
 .idea/
