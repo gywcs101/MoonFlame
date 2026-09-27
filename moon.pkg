@@ -1,2 +1,3 @@
-// MoonFlame 根包。
-// 核心实现（解析 / 聚合 / 布局 / SVG）将随后续提交逐步加入。
+import {
+  "moonbitlang/core/string",
+}

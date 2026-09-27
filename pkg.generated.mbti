@@ -2,11 +2,24 @@
 package "gywcs101/moonflame"
 
 // Values
+pub fn parse_folded(String) -> ParseResult
+
+pub fn parse_line(StringView) -> Sample?
+
 pub fn version() -> String
 
 // Errors
 
 // Types and methods
+pub struct ParseResult {
+  samples : Array[Sample]
+  skipped_lines : Int
+} derive(Eq)
+
+pub struct Sample {
+  frames : Array[String]
+  weight : Double
+} derive(Eq)
 
 // Type aliases
 
