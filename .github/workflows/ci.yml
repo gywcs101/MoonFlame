@@ -1,9 +1,9 @@
 name: CI
 
 # 覆盖检查、构建、测试、格式化与接口一致性。
-# 依据赛事 FAQ 推荐的 moonbit-community 基础 CI 规格编写：
-# 三平台 × 全后端，跑 `moon check --target all` 与 `moon test --target all`，
-# 外加 `moon fmt` 与 `moon info` 的一致性检查。
+# 依据 moonbit-community 官方 check.yml 模板编写，并在此基础上：
+#   - 加了 --deny-warn（警告即失败），比模板更严格；
+#   - 多了一个端到端出图的 job，验证渲染器真的能跑。
 
 on:
   push:
@@ -26,6 +26,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: 安装 MoonBit 工具链（macOS / Linux）
         if: runner.os != 'Windows'
@@ -38,13 +40,18 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
           irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
-          "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
-      - name: 记录工具链版本
-        run: moon version --all
+      # `moon update` 是必需的：全新环境里包注册表索引是空的，
+      # 不更新的话下一步会报 `moonbitlang/x` module was not found in the registry。
+      - name: 安装后置：更新注册表索引
+        run: |
+          moon version --all
+          moon update
 
-      # --deny-warn：警告即失败。这条比默认检查严格，是工程质量的正向信号。
+      # --deny-warn：警告即失败。这条比官方模板严格，是工程质量的正向信号。
       - name: 类型检查（全部后端，警告即失败）
         run: moon check --target all --deny-warn
 
@@ -80,6 +87,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: 安装 MoonBit 工具链（macOS / Linux）
         if: runner.os != 'Windows'
@@ -92,8 +101,14 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
           irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
-          "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: 安装后置：更新注册表索引
+        run: |
+          moon version --all
+          moon update
 
       # demo 是独立模块，根模块的检查覆盖不到它
       - name: 类型检查
@@ -109,12 +124,19 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: 安装 MoonBit 工具链
         shell: bash
         run: |
           curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: 安装后置：更新注册表索引
+        run: |
+          moon version --all
+          moon update
 
       - name: 用自带样例数据出图
         shell: bash
