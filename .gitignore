@@ -1,8 +1,12 @@
 # ============================================================================
 # MoonFlame .gitignore
 #
-# 原则：仓库只保留**源码、文档、以及别人拿到就能直接看/直接跑的最小数据**。
-# 一切能由一条命令重新生成的中间产物都不入库。
+# 原则：仓库里只放**用户了解和使用这个项目所需要的文件**
+#       —— 源码、构建配置、许可证、使用说明、可试用的样例数据与产物，
+#          以及验收所要求的测试与 CI。
+#
+#       一切「面向开发者本人」的流程文件、以及能由一条命令重新生成的
+#       中间产物，都不入库。
 # ============================================================================
 
 # ---------- MoonBit 构建产物 ----------
@@ -11,15 +15,28 @@ target/
 .mooncakes/
 .moonagent/
 
+# ---------- 面向开发者本人的流程与工作文件（用户不需要）----------
+# AGENTS.md                   ：给 AI 编码代理的开发约束（编码约定、提交规范、防膨胀红线）
+# tools/                      ：开发期辅助脚本（折叠栈分析、构造差异基线）
+# docs/DESIGN.md              ：项目设计笔记（算法取舍、与经典实现的差异、范围取舍记录）
+# docs/DATA-PIPELINE.md       ：数据链路验证报告（安装踩坑、交叉验证、实测发现）
+# docs/APPLICATION-FULL.md    ：申报书详细底稿（提交用的是一页版 APPLICATION.md）
+# 这些都留在本地工作副本里，只是不进公开仓库。
+AGENTS.md
+tools/
+docs/DESIGN.md
+docs/DATA-PIPELINE.md
+docs/APPLICATION-FULL.md
+
 # ---------- 本地工具链（约 1.3 GB，仅为复现采样数据而存在）----------
 # 含 Rust 工具链与 moon-pprof。它**不是项目的依赖**——只有 demo/reproduce.ps1
 # 需要它，渲染器本身完全不需要。若只想渲染，整个目录都可以删。
-# 其中 _toolchain/target（Rust 构建缓存，约 1 GB）是纯缓存，可随时删。
+# 其中 _toolchain/target（Rust 编译缓存，约 1 GB）是纯缓存，可随时删。
 _toolchain/
 
 # ---------- 复现脚本产生的中间产物 ----------
 # 正式样例数据以 testdata/ 为准，这里产生的文件不入库。
-# 注意 demo/folded 与 testdata/demo.folded 内容不同：采样有随机性，
+# 注意 demo.folded 与 testdata/demo.folded 内容不同：采样有随机性，
 # 前者只是本机这次跑出来的，后者是冻结下来作为基准的那一份。
 demo/*.pb.gz
 demo/*.folded
@@ -30,10 +47,6 @@ demo/*.wasm
 # 正式的示例图在 examples/，那些是入库的。
 /*.svg
 /out.svg
-
-# ---------- 工具的下载缓存 ----------
-# tools/*.js 可能把在线检索结果缓存成 JSON，属于可再生成的中间数据。
-tools/*.json
 
 # ---------- 编辑器 / 系统 ----------
 .vscode/
@@ -48,10 +61,18 @@ desktop.ini
 
 # ============================================================================
 # 以下是**明确入库**的，不要加进上面的规则里：
-#   examples/flame.svg      示例火焰图（可交互，直接打开）
-#   examples/flame-diff.svg 示例差异火焰图
-#   examples/flame.png      README 首屏用图（SVG 在部分平台不渲染，故备 PNG）
-#   examples/flame-diff.png 同上
-#   testdata/*.folded       冻结的样例数据与极限用例
-#   testdata/*.wasm|.pb.gz  对应的采样产物（供 go tool pprof 交叉验证）
+#
+#   源码          *.mbt（根包）/ cli/ / cmd/main/
+#   构建配置      moon.mod / moon.pkg / *.generated.mbti
+#   许可与说明    LICENSE / README.md
+#   测试          *_test.mbt、cli/cli_test.mbt
+#                 —— 验收要求「提供完整测试，覆盖核心功能路径」，必须入库
+#   CI            .github/workflows/ci.yml
+#                 —— 验收要求「使用持续集成工具并覆盖检查、构建、测试」，必须入库
+#   样例数据      testdata/*.folded、*.wasm、*.pb.gz
+#   样例产物      examples/flame.svg、flame.png 等
+#                 （SVG 可交互；PNG 是 2 倍分辨率栅格版，供 README 首屏，
+#                   因为 <img> 引用 SVG 时脚本不执行，且 PNG 到处都能渲染）
+#   文档          README.md（唯一的用户文档）与 docs/APPLICATION.{md,pdf}
+#   演示负载      demo/（工作负载 + 一键复现脚本，README 有专节指向它）
 # ============================================================================

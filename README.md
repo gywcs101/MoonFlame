@@ -93,8 +93,7 @@ moon run cmd/main -- hotspots testdata/demo.folded --top 10
 
 **① 安装采样器**（仅采集端需要，渲染器不需要）
 
-需要 [`mizchi/moon-pprof`](https://github.com/mizchi/moon-pprof)，它依赖 Rust 工具链。
-完整安装步骤与踩坑记录见 [`docs/DATA-PIPELINE.md`](docs/DATA-PIPELINE.md)。
+需要 [`mizchi/moon-pprof`](https://github.com/mizchi/moon-pprof)，它依赖 Rust 工具链，安装方式见该仓库说明。
 
 **② 把程序编译成 wasm-gc**
 
@@ -231,15 +230,16 @@ moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o 
 
 颜色用全图最大的变化量做归一化——不归一化的话，只要有一处剧变，其它变化在颜色上就会全糊成一片。
 
-> ⚠️ `testdata/demo-baseline.folded` 是**构造**的基线（含 `bubble__sort` 的行 ×3、含 `build__strings` 的行 ×0.8），
-> 仅用于演示与测试差异模式，不是真实采样。规则固化在 `tools/make-baseline.js`，可逐行复核。
+> ⚠️ `testdata/demo-baseline.folded` 是**构造**的基线，仅用于演示与测试差异模式，不是真实采样。
+> 构造规则只有两条，可逐行核对：**含 `bubble__sort` 的行权重 ×3**、**含 `build__strings` 的行权重 ×0.8**
+> （向下取整），其余行不变。真实基线应当来自优化前的那次采样。
 
 ## 已知限制
 
 1. **上游采样仅支持 wasm / wasm-gc** 目标，native CPU 采样不可用；
 2. `moon-pprof` 需要 Rust 工具链（**仅采集端**）；**核心库零依赖**，只有命令行入口依赖官方包 `moonbitlang/x` 做文件读写；
 3. 递归程序会产生极深栈（实测最深 7254 层），超过深度上限的部分合并显示为 `(deeper)`；
-4. **上游采样分辨率取决于函数调用频率，而非运行时长**（实测：调用密集约 600 样本/秒，循环密集约 42 样本/秒，相差 14 倍）。因此短于约 25 ms 的函数可能采不到，且**延长运行时间不会提高统计质量**。详见 [`docs/DATA-PIPELINE.md`](docs/DATA-PIPELINE.md)；
+4. **上游采样分辨率取决于函数调用频率，而非运行时长**（实测：调用密集约 600 样本/秒，循环密集约 42 样本/秒，相差 14 倍）。因此短于约 25 ms 的函数可能采不到，且**延长运行时间不会提高统计质量**；
 5. 内嵌交互脚本**只在直接打开 SVG 或内联嵌入时执行**；用 `<img>` 引用（GitHub 渲染本 README 即是如此）时浏览器不会运行 SVG 内的脚本，只显示静态外观；
 6. 帧的横轴按**耗时降序**排列（经典实现按名字字母序），这是为了让宽帧聚集在左侧、更易读的刻意选择；
 7. 图中会出现 `(self)` 与 `(deeper)` 两个合成帧：前者是该函数的**自身耗时**，后者是超过深度上限被合并的更深帧。经典实现没有这两个节点，显式画出它们是为了保证「父矩形宽度 = 子矩形宽度之和」——否则图面上会出现空洞。
@@ -249,24 +249,29 @@ moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o 
 ```text
 .
 ├── LICENSE                       MIT
+├── moon.mod / moon.pkg           模块与包配置
+├── pkg.generated.mbti            公开接口（由 moon info 生成，须与源码同步）
+│
 ├── folded.mbt                    折叠栈解析
 ├── calltree.mbt                  调用树聚合 / 限深合并 / 差异标注
+├── unit.mbt                      权重单位与格式化
+├── names.mbt                     符号名归一化
 ├── hotspot.mbt                   Top-N 热点报告
+├── report.mbt                    文本报告（调用关系 / 差异排行 / 栈过滤）
 ├── layout.mbt                    矩形布局（火焰图 / 冰柱）
 ├── svg.mbt                       SVG 渲染（经典配色 + 内嵌交互脚本）
+├── *_test.mbt                    核心逻辑的测试（166 个用例）
+│
 ├── cli/                          命令行参数解析（独立包，可脱离文件系统测试）
 ├── cmd/main/                     入口：读文件 → 调用核心库 → 写文件
-├── docs/
-│   ├── DESIGN.md                 项目设计（定位、格式、算法、与经典实现的差异）
-│   ├── DATA-PIPELINE.md          数据链路验证报告（含环境踩坑与关键发现）
-│   └── APPLICATION.md            项目申报书
-├── demo/                         演示负载（独立模块，可复现样例数据）
-│   └── reproduce.ps1             一键复现脚本
+│
+├── .github/workflows/ci.yml      持续集成（三平台 × 四后端 + 端到端出图）
+├── docs/                         项目申报书（Markdown 与 PDF 两个版本）
+├── demo/                         演示负载（独立模块）
+│   ├── demo.mbt                  四点负载：排序 / 字符串 / 矩阵 / 递归
+│   └── reproduce.ps1             一键复现：编译 → 采样 → 转折叠栈
 ├── examples/                     示例图（SVG 可交互，PNG 供 README 展示）
-├── testdata/                     冻结的样例数据
-└── tools/
-    ├── analyze_folded.js         折叠栈结构分析
-    └── make-baseline.js          构造差异模式基线
+└── testdata/                     冻结的样例数据（主样例 + 极限用例 + 上游样例）
 ```
 
 **分层原则**：根包只做纯计算、零外部依赖；参数解析单独成包以便脱离文件系统测试；
@@ -288,7 +293,7 @@ moon run cmd/main -- --help
 - 火焰图（Flame Graph）的概念与折叠栈格式由 **Brendan Gregg** 提出；
 - 渲染外观与交互行为对齐 [brendangregg/FlameGraph](https://github.com/brendangregg/FlameGraph) 的 `flamegraph.pl`：**暖色调色板的数值公式、差异配色规则、以及悬停 / 点击缩放 / Ctrl-F 搜索的交互语义**均与之兼容。
   ⚠️ 该项目采用 **CDDL-1.0**——一种**文件级弱 copyleft**，不是宽松许可（它与 GPL 明确不兼容）。
-  为避免任何许可证混用问题，本项目**其源码一行未复制**，只对齐功能规格，MoonBit 与 JavaScript 实现全部原创。详见 [`docs/DESIGN.md`](docs/DESIGN.md) §5b；
+  为避免任何许可证混用问题，本项目**其源码一行未复制**，只对齐功能规格，MoonBit 与 JavaScript 实现全部原创（与经典实现的偏离项见[已知限制](#已知限制)）；
 - 可选的上游数据来源：[mizchi/moon-pprof](https://github.com/mizchi/moon-pprof)（Apache-2.0），负责采样与格式归一；
 - 渲染正确性以 [google/pprof](https://github.com/google/pprof)（Apache-2.0）作为交叉验证基准；
 - `testdata/official-sample.wasm` 来自 moon-pprof 仓库的样例（Apache-2.0）。
