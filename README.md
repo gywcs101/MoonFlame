@@ -35,6 +35,9 @@ moon run cmd/main -- testdata/demo.folded --out flame.svg
 
 用浏览器打开 `flame.svg`，鼠标悬停即可看到每个帧的名字、耗时与占比。
 
+> `testdata/demo.folded` 是随仓库提供的现成数据，**不需要安装任何采样工具**即可跑通。
+> 这些数据是怎么来的、以及怎么处理你自己的数据，见「[数据从哪来](#数据从哪来)」。
+
 只看文本热点、不出图：
 
 ```bash
@@ -101,32 +104,45 @@ moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o 
 
 ## 数据从哪来
 
-MoonFlame 只接受**折叠栈（folded stack）**这一通用中间格式：
+**本项目不做采样。** MoonFlame 只接受**折叠栈（folded stack）**这一通用中间格式：
 
 ```text
 ____moonbit__main;moonflame::demo::bench__sorting;bubble__sort;array::Array::at 73382500
 ```
 
-该格式由 FlameGraph 定义，`perf`、`py-spy`（raw）、`async-profiler`（collapsed）、`mizchi/moon-pprof`（`pprof2folded`）等均可产出。
+采样由上游工具完成，**不是我们的代码、也不是我们的依赖**——`mizchi/moon-pprof`、`perf`、`py-spy`（raw）、
+`async-profiler`（collapsed）等都能产出这个格式（定义见 [FlameGraph](https://github.com/brendangregg/FlameGraph)）。
 
-### 复现本项目使用的样例数据
+所以用起来永远是两步，分属两个工具：
 
-`demo/` 是一个 MoonBit 演示负载（排序 / 字符串 / 矩阵 / 递归四个阶段），可按脚本一键复现采样数据：
+| 步骤 | 谁做 | 大致命令 |
+| --- | --- | --- |
+| ① 采样，得到 `.folded` | **上游工具**（需自行安装） | `moon-pprof profile …` → `moon-pprof pprof2folded …` |
+| ② 画图 | **MoonFlame** | `moon run cmd/main -- <任意>.folded --out flame.svg` |
+
+第 ① 步换成任何别的工具都不影响第 ② 步——MoonFlame 只认文件，不认它的来源。
+
+### 复现本项目使用的样例数据（可选）
+
+`testdata/demo.folded` 是真实采样后**冻结**下来的一份，**不需要装任何工具**就能直接画图：
 
 ```powershell
-# 需要先安装 moon-pprof，见 docs/DATA-PIPELINE.md
+moon run cmd/main -- testdata/demo.folded --out flame.svg
+```
+
+若想亲手复现这份数据的来源，`demo/` 下有一个 MoonBit 演示负载（排序 / 字符串 / 矩阵 / 递归四个阶段）
+和一个 Windows 一键脚本：
+
+```powershell
+# 前置：本机已装 moon-pprof（见 docs/DATA-PIPELINE.md）。它不属于本项目。
 powershell demo/reproduce.ps1     # PowerShell 7 用户可换成 pwsh
 ```
 
-脚本会：编译 `wasm-gc` → 用 `moon-pprof` 采样 → 转成折叠栈 → 输出热点概览。
-生成的 `demo/demo.folded` 即可作为渲染器的输入：
+脚本依次：编译 `wasm-gc` → 采样 3 轮 → 转成折叠栈 → 打印热点概览，产出 `demo/demo.folded`。
+它只是把这四条上游命令排好序，**不含任何测量或渲染逻辑**；删掉它不影响 MoonFlame 运行。
 
-```powershell
-moon run cmd/main -- demo/demo.folded --top 10 --out flame.svg
-```
-
-> 采样有随机性：同一份负载每次跑出来的栈数与总耗时都会略有不同（实测 61–70 栈 / 1.02–1.04 s），
-> 但热点排序稳定——这也是它需要归一化的原因之一。
+> 采样有随机性：重跑会得到不同的栈数与总耗时（实测行数 32–34、总耗时 888–1040 ms），但**热点排序稳定**。
+> 另外，折叠栈里**一行 = 一个不同的调用栈**，重复出现的栈会被合并、权重累加——所以文件行数通常小于上游报告的样本数。
 
 ---
 
