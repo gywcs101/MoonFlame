@@ -351,4 +351,3 @@ demo/demo.mbt ──moon build --target wasm-gc──▶ demo/_build/.../main.wa
 | **`testdata/stress-recursive.folded`** | ⭐ **极限用例**：79 栈 / 最深 7254 层 / 5.5 MB，用于测试限深与合并 |
 | `tools/analyze_folded.js` | 折叠栈分析脚本（深度分布、Top-N、帧名统计） |
 | `tools/make-baseline.js` | 构造差异模式基线的确定性脚本（bubble ×3 / build_strings ×0.8） |
-| `tools/check_topic.js` | 选题撞车自查工具 |
