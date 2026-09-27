@@ -18,7 +18,7 @@ readme = "README.md"
 
 repository = "https://github.com/gywcs101/moonflame"
 
-license = "Apache-2.0"
+license = "MIT"
 
 keywords = [ "flamegraph", "profiling", "visualization", "svg" ]
 

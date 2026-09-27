@@ -167,7 +167,7 @@ pub struct Node {
 
 ```text
 moonflame/
-├── LICENSE                      # Apache-2.0
+├── LICENSE                      # MIT
 ├── README.md
 ├── moon.mod                     # 依赖 moonbitlang/x（仅 CLI 需要）
 ├── moon.pkg                     # 根包：纯渲染逻辑，零依赖
@@ -356,7 +356,7 @@ test "解析折叠栈" {
 | 仓库公开 | GitHub 公开仓库，18 个提交，均为真实开发步骤（无拆分凑数、无空提交） |
 | 能够运行 | `moon run cmd/main -- testdata/demo.folded --out flame.svg` 一条命令出图；`moon test` 122 个全绿；README 里的示例命令均实测可执行 |
 | 工作有效 | 原创项目；核心库约 956 行代码（含 233 行内嵌 JS，纯 MoonBit 逻辑约 723 行）+ 约 1284 行测试，附完整文档与可复现的样例数据 |
-| 开源合规 | Apache-2.0。**未复制任何第三方源码**；与 `flamegraph.pl` 对齐的只有功能规格——该项目采用 CDDL-1.0（文件级弱 copyleft，非宽松许可），已在 README 与 §5b 明确声明 |
+| 开源合规 | MIT。**未复制任何第三方源码**；与 `flamegraph.pl` 对齐的只有功能规格——该项目采用 CDDL-1.0（文件级弱 copyleft，非宽松许可），已在 README 与 §5b 明确声明 |
 | AI 可解释 | `AGENTS.md` 载明 AI 使用约定（逐条测试验证、关键结论必须实测）；实测结论记录在 `docs/DATA-PIPELINE.md` |
 
 ---

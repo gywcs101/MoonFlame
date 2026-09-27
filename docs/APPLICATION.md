@@ -16,7 +16,7 @@
 | **GitHub 仓库** | （待填写，如 `https://github.com/gywcs101/MoonFlame`） |
 | **项目方向** | MoonBit 开发者工具 / 性能可视化基础设施 |
 | **项目类型** | **原创项目**（非移植项目） |
-| **开源许可证** | Apache-2.0 |
+| **开源许可证** | MIT |
 | **当前状态** | 功能完整、可运行、有测试与示例数据（18 个提交 / 122 个测试） |
 
 ---
@@ -239,4 +239,4 @@ MoonFlame 补的是「**单文件、零环境、可归档**」这一空缺。
 | 设计文档 | `docs/DESIGN.md` |
 | 数据链路验证报告 | `docs/DATA-PIPELINE.md` |
 | 使用说明 | `README.md` |
-| 许可证 | `LICENSE`（Apache-2.0） |
+| 许可证 | `LICENSE`（MIT） |

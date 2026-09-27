@@ -193,7 +193,7 @@ moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o 
 
 ```text
 .
-├── LICENSE                       Apache-2.0
+├── LICENSE                       MIT
 ├── folded.mbt                    折叠栈解析
 ├── calltree.mbt                  调用树聚合 / 限深合并 / 差异标注
 ├── hotspot.mbt                   Top-N 热点报告
@@ -238,4 +238,4 @@ moon run cmd/main -- --help
 - 渲染正确性以 [google/pprof](https://github.com/google/pprof)（Apache-2.0）作为交叉验证基准；
 - `testdata/official-sample.wasm` 来自 moon-pprof 仓库的样例（Apache-2.0）。
 
-本项目使用 [Apache License 2.0](LICENSE)。
+本项目使用 [MIT License](LICENSE)。
