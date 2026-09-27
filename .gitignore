@@ -1,0 +1,27 @@
+# ---------- MoonBit 构建产物 ----------
+_build/
+target/
+.mooncakes/
+.moonagent/
+
+# ---------- 本地工具链（约 2.3 GB，不纳入版本控制）----------
+# 含 Rust 工具链与 moon-pprof。若只需运行 moon-pprof，
+# 保留 _toolchain/cargo/bin/ 即可，其余可删。
+_toolchain/
+
+# ---------- 复现脚本产生的中间产物 ----------
+# 正式样例数据以 testdata/ 为准，这里产生的产物不入库
+demo/*.pb.gz
+demo/*.folded
+demo/*.wasm
+
+# ---------- 编辑器 / 系统 ----------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- 其他 ----------
+*.log
+*.tmp

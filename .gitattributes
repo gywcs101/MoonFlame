@@ -1,0 +1,12 @@
+# 文本文件统一在仓库内使用 LF，检出时按平台转换
+* text=auto
+
+# 二进制文件（避免被当作文本处理、避免行尾转换）
+*.wasm  binary
+*.pb    binary
+*.pb.gz binary
+*.svg   text
+
+# 脚本固定使用 LF
+*.ps1 text eol=lf
+*.sh  text eol=lf
