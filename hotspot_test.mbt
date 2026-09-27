@@ -92,8 +92,10 @@ test "renders a text report" {
   let report = @moonflame.render_hotspots(
     @moonflame.top_hotspots(tree, 10),
     tree.total,
+    @moonflame.Nanoseconds,
   )
-  assert_true(report.contains("Top 2 hotspots by self time (total 1000)"))
+  // 1000 纳秒按数量级自动显示成 1 µs
+  assert_true(report.contains("Top 2 hotspots by self time (total 1 µs)"))
   assert_true(report.contains("90.0%"))
   assert_true(report.contains("10.0%"))
   assert_true(report.contains("fft"))
@@ -112,6 +114,7 @@ test "rounds a percentage up instead of truncating the fraction" {
   let report = @moonflame.render_hotspots(
     @moonflame.top_hotspots(tree, 1),
     tree.total,
+    @moonflame.Nanoseconds,
   )
   assert_true(report.contains("100.0%"))
 }

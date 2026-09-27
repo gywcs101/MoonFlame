@@ -1,6 +1,10 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "gywcs101/moonflame"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 pub const BASE_FONT_SIZE : Double = 12.0
 
@@ -10,7 +14,13 @@ pub const FRAME_HEIGHT : Double = 16.0
 
 pub fn aggregate(Array[Sample], max_depth? : Int) -> CallTree
 
+pub fn compute_delta(CallTree, CallTree, Int) -> Array[DeltaEntry]
+
 pub fn deeper_placeholder() -> String
+
+pub fn default_font_size() -> Double
+
+pub fn default_min_width() -> Double
 
 pub fn diff_against(CallTree, CallTree) -> CallTree
 
@@ -18,15 +28,31 @@ pub fn fill_for_delta(Double, Double) -> String
 
 pub fn fill_of(String) -> String
 
+pub fn filter_folded(String, String) -> String
+
+pub fn find_callees(CallTree, String) -> Array[Relation]
+
+pub fn find_callers(CallTree, String) -> Array[Relation]
+
+pub fn format_signed_weights(Double, WeightUnit) -> String
+
+pub fn format_weight(Double, WeightUnit) -> String
+
 pub fn layout(CallTree, Double, Double, inverted? : Bool) -> Layout
+
+pub fn normalize_name(String) -> String
 
 pub fn parse_folded(String) -> ParseResult
 
 pub fn parse_line(StringView) -> Sample?
 
-pub fn render_hotspots(Array[Hotspot], Double) -> String
+pub fn render_delta(Array[DeltaEntry], Double, Double, WeightUnit) -> String
 
-pub fn render_svg(Layout, min_width? : Double, font_size? : Double, show_labels? : Bool) -> String
+pub fn render_hotspots(Array[Hotspot], Double, WeightUnit) -> String
+
+pub fn render_relations(Array[Relation], String, String, WeightUnit) -> String
+
+pub fn render_svg(Layout, min_width? : Double, font_size? : Double, show_labels? : Bool, unit? : WeightUnit, normalize_names? : Bool) -> String
 
 pub fn self_placeholder() -> String
 
@@ -42,6 +68,14 @@ pub struct CallTree {
   total : Double
 } derive(Eq)
 pub fn CallTree::max_delta(Self) -> Double
+
+pub struct DeltaEntry {
+  name : String
+  before : Double
+  after : Double
+  change : Double
+  ratio : Double
+} derive(Eq)
 
 pub struct Hotspot {
   name : String
@@ -88,10 +122,26 @@ pub struct Rect {
   delta : Double?
 } derive(Eq)
 
+pub struct Relation {
+  label : String
+  value : Double
+  ratio : Double
+} derive(Eq)
+
 pub struct Sample {
   frames : Array[String]
   weight : Double
 } derive(Eq)
+
+pub(all) enum WeightUnit {
+  Count
+  Nanoseconds
+  Microseconds
+  Milliseconds
+  Seconds
+} derive(Eq, @debug.Debug)
+pub fn WeightUnit::label(Self) -> String
+pub fn WeightUnit::parse(String) -> Self?
 
 // Type aliases
 

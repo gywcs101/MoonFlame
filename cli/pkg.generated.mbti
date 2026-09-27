@@ -2,11 +2,14 @@
 package "gywcs101/moonflame/cli"
 
 import {
+  "gywcs101/moonflame",
   "moonbitlang/core/argparse",
 }
 
 // Values
 pub const DEFAULT_MAX_DEPTH : Int = 32
+
+pub const DEFAULT_TOP : Int = 10
 
 pub const DEFAULT_WIDTH : Double = 1400.0
 
@@ -19,13 +22,24 @@ pub fn parse_config(ArrayView[String]) -> Config raise
 // Errors
 
 // Types and methods
+pub(all) enum Action {
+  Render
+  Diff
+  Hotspots(Int)
+  Callers(String)
+  Callees(String)
+  Delta(Int)
+  Filter(String)
+} derive(Eq)
+
 pub struct Config {
+  action : Action
   input : String
-  baseline : String?
+  second : String?
   out : String?
   max_depth : Int
-  top : Int?
   width : Double
+  unit : @moonflame.WeightUnit
   inverted : Bool
 } derive(Eq)
 

@@ -48,8 +48,9 @@ test "wraps every frame in a group carrying its name" {
 ///|
 test "gives every rect a hover title" {
   let svg = svg_of("main;fft 100", 0)
-  assert_true(svg.contains("<title>main — 100 (100.0%)</title>"))
-  assert_true(svg.contains("<title>fft — 100 (100.0%)</title>"))
+  // 默认按纳秒解读权重；100 不足 1 µs，因此显示为 "100 ns"
+  assert_true(svg.contains("<title>main — 100 ns (100.0%)</title>"))
+  assert_true(svg.contains("<title>fft — 100 ns (100.0%)</title>"))
 }
 
 ///|

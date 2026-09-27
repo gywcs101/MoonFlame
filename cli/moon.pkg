@@ -1,4 +1,7 @@
 import {
+  // 参数解析本身只用官方包；`WeightUnit` 来自本模块根包——
+  // unit 是核心概念（权重怎么解读），放在根包里让渲染与报告共用一份定义。
+  "gywcs101/moonflame",
   "moonbitlang/core/argparse",
   "moonbitlang/core/string",
 }

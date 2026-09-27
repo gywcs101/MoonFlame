@@ -149,13 +149,15 @@ pub fn fill_for_delta(delta : Double, max_delta : Double) -> String {
 }
 
 ///|
-/// 变化量的文本表示，正数带 `+` 号便于识别。
-fn format_delta(delta : Double) -> String {
-  if delta > 0.0 {
-    "+" + format_weight(delta)
-  } else {
-    format_weight(delta)
-  }
+/// 默认最小矩形宽度（像素）。
+pub fn default_min_width() -> Double {
+  MIN_RECT_WIDTH
+}
+
+///|
+/// 默认字号。
+pub fn default_font_size() -> Double {
+  BASE_FONT_SIZE
 }
 
 ///|
@@ -425,11 +427,16 @@ fn inline_style(font : Double) -> String {
 ///
 /// `show_labels` 控制是否在矩形内写帧名。窄框里写字会溢出，因此按字号粗略
 /// 估算宽度，放不下就不画（交互脚本在缩放后也会重新估算并截断）。
+///
+/// `unit` 决定悬停提示里绝对值的显示方式；`normalize_names` 控制是否把上游
+/// 未还原的符号名归一化（只影响显示，解析层始终原样保留）。
 pub fn render_svg(
   layout : Layout,
   min_width? : Double,
   font_size? : Double,
   show_labels? : Bool,
+  unit? : WeightUnit,
+  normalize_names? : Bool,
 ) -> String {
   let threshold = match min_width {
     Some(value) => value
@@ -440,6 +447,14 @@ pub fn render_svg(
     None => BASE_FONT_SIZE
   }
   let labels = match show_labels {
+    Some(value) => value
+    None => true
+  }
+  let weight_unit = match unit {
+    Some(value) => value
+    None => Nanoseconds
+  }
+  let normalize = match normalize_names {
     Some(value) => value
     None => true
   }
@@ -552,23 +567,30 @@ pub fn render_svg(
     }
     let ratio = if layout.total > 0.0 { rect.value / layout.total } else { 0.0 }
     let delta_text = match rect.delta {
-      Some(delta) => " " + format_delta(delta)
+      Some(delta) => " " + format_signed_weights(delta, weight_unit)
       None => ""
     }
-    let escaped = escape_xml(rect.name)
+    // 显示名可以归一化；`data-name` 与提示文本里的原名保持可追溯
+    let shown = if normalize { normalize_name(rect.name) } else { rect.name }
+    let escaped = escape_xml(shown)
+    let original = escape_xml(rect.name)
     // data-name 供交互脚本读取，省去解析提示文本
     sb.write_string("<g data-name=\"" + escaped + "\">")
     sb.write_string(
       "<title>" +
       escaped +
       " — " +
-      format_weight(rect.value) +
+      format_weight(rect.value, weight_unit) +
       " (" +
       format_percent(ratio) +
       ")" +
-      delta_text +
-      "</title>",
+      delta_text,
     )
+    // 名字被归一化过时，把原名附在提示里，信息不丢失
+    if shown != rect.name {
+      sb.write_string("&#10;原名: " + original)
+    }
+    sb.write_string("</title>")
     sb.write_string(
       "<rect x=\"" +
       quantized_text(left) +
@@ -584,7 +606,7 @@ pub fn render_svg(
     )
     if labels {
       let room = rect_width.to_double() / 10.0 - 6.0
-      let fits = rect.name.char_length().to_double() * font * FONT_WIDTH
+      let fits = shown.char_length().to_double() * font * FONT_WIDTH
       if fits <= room {
         let baseline = rect.y + pad_y_top + (rect.height + font) / 2.0 - 1.0
         sb.write_string(

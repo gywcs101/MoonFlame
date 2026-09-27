@@ -106,23 +106,18 @@ fn format_percent(ratio : Double) -> String {
 }
 
 ///|
-/// 权重通常是较大的整数（如纳秒），按整数展示；非整数则保留原样。
-fn format_weight(value : Double) -> String {
-  // 负数要朝绝对值更大的方向取整，否则 -1200000 会被写成 -1199999
-  let rounded = (if value < 0.0 { value - 0.5 } else { value + 0.5 }).to_int()
-  if rounded.to_double() == value {
-    rounded.to_string()
-  } else {
-    value.to_string()
-  }
-}
-
-///|
 /// 把热点列表渲染成纯文本报告。
-pub fn render_hotspots(hotspots : Array[Hotspot], total : Double) -> String {
+///
+/// `unit` 决定绝对值怎么显示（时间按数量级缩放，计数加千位分隔）；
+/// 占比不受单位影响。
+pub fn render_hotspots(
+  hotspots : Array[Hotspot],
+  total : Double,
+  unit : WeightUnit,
+) -> String {
   let sb = StringBuilder()
   sb.write_string(
-    "Top \{hotspots.length()} hotspots by self time (total \{format_weight(total)})\n",
+    "Top \{hotspots.length()} hotspots by self time (total \{format_weight(total, unit)})\n",
   )
   sb.write_string("\n")
   sb.write_string("  #  self%       self time  frame\n")
@@ -131,7 +126,7 @@ pub fn render_hotspots(hotspots : Array[Hotspot], total : Double) -> String {
     rank = rank + 1
     let rank_text = rank.to_string()
     let percent_text = format_percent(h.ratio)
-    let weight_text = format_weight(h.self_time)
+    let weight_text = format_weight(h.self_time, unit)
     sb.write_string(
       String::pad_start(rank_text, 3, ' ') +
       "  " +
