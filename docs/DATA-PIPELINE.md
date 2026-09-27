@@ -245,10 +245,10 @@ moon-pprof pprof2folded demo.pb.gz demo.folded
 
 | 指标 | 值 |
 | --- | --- |
-| 栈数 / 不同栈 | 33 / 33 |
-| 不同帧名 | 26 |
-| 栈深度 | **3 ~ 29**（中位 6） |
-| 总权重 | 894.6 ms |
+| 栈数 / 不同栈 | 32 / 32 |
+| 不同帧名 | 24 |
+| 栈深度 | **3 ~ 28**（中位 6） |
+| 总权重 | 888 ms |
 
 对比 `testdata/stress-recursive.folded` 的 7254 层——这份 demo 数据是"可读的形状"：3 层深的主干 + 清晰的并列分支 + `fib` 递归形成的窄深尖峰。
 
@@ -297,6 +297,39 @@ moon-pprof pprof2folded demo.pb.gz demo.folded
 - **适当增加函数调用层次**可提高分辨率，但要避免深递归（本次 `fib(32)` 约 29 层，安全）；
 - 数据来源与复现方式必须写进 README：**"由 `demo/` 目录下的程序真实采样得到，可按 `demo/reproduce.ps1` 一键复现"**——这直接对应验收要求的"可复现的演示说明"。
 
+### 9.6 `testdata/demo.folded` 的来源与「冻结」
+
+这份文件是**跑完整条链路后的一次采样结果被固化下来的副本**，不是手工构造的：
+
+```text
+demo/demo.mbt ──moon build --target wasm-gc──▶ demo/_build/.../main.wasm
+             ──moon-pprof profile --iterations 3──▶ demo.pb.gz
+             ──moon-pprof pprof2folded──▶ demo.folded ──复制──▶ testdata/demo.folded
+```
+
+**为什么要冻结而不是每次现采？**
+
+1. `moon-pprof` 只在**采集端**需要，且要从源码编译（44.6MB，见第 2 节），仓库不打包它——
+   评委拿到仓库后不该被迫先装 Rust 才能看到图；
+2. `examples/flame.svg` 与 README 里引用的行数/耗时，都**以这一份为准**；
+3. 回归测试的行是从**这一份**里摘录的——文件变了，摘录就失去了参照。
+
+**采样是随机的，所以每次重跑都会得到不同的一份。** 实测同一份负载、同一套命令：
+
+| | 提交的 `testdata/demo.folded` | 重跑一次得到的 |
+| --- | --- | --- |
+| 栈数 | 32 | 34 |
+| 栈深度 | 3 – 28 | 3 – 27 |
+| 总权重 | 888 ms | 897.9 ms |
+| `pprof2folded` 报告的原始样本数 | — | 61 |
+
+热点**排序**在各次之间是稳定的（`build__strings` 始终第一），但绝对数值与栈数会浮动。
+因此任何**硬编码总耗时或栈数**的断言都不应针对现采数据，只能针对冻结的这份。
+
+**注意**：测试**不读取**这些文件。`folded_realdata_test.mbt` / `calltree_test.mbt` / `hotspot_test.mbt`
+只是把文件里的若干行**内嵌**为字面量（已核对，权重 `3009200` / `5707200` / `35055400` 均逐字命中），
+因此 `testdata/` 是给人和评委看的资产，不是测试的运行时依赖。
+
 ---
 
 ## 10. 留存的可复现资产
@@ -306,7 +339,7 @@ moon-pprof pprof2folded demo.pb.gz demo.folded
 | `demo/` | 演示负载的 MoonBit 源码（4 个阶段），可直接复现数据 |
 | `demo/reproduce.ps1` | 一键复现脚本：编译 → 采样 → 转折叠栈 |
 | `testdata/demo.wasm` / `demo.pb.gz` | 自建 demo 的 wasm-gc 二进制与采样结果 |
-| **`testdata/demo.folded`** | ⭐ **主 demo 数据**：33 栈 / 深度 3–29 / 894.6ms |
+| **`testdata/demo.folded`** | ⭐ **主 demo 数据**：32 栈 / 深度 3–28 / 888 ms。
 | `testdata/official-sample.wasm` / `.pb.gz` | moon-pprof 官方样例（Apache-2.0），保留来源 |
 | **`testdata/stress-recursive.folded`** | ⭐ **极限用例**：79 栈 / 最深 7254 层 / 5.5 MB，用于测试限深与合并 |
 | `tools/analyze_folded.js` | 折叠栈分析脚本（深度分布、Top-N、帧名统计） |
