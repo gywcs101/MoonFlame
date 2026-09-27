@@ -63,7 +63,8 @@ MoonFlame 补的是「**单文件、零环境、可归档**」这一空缺。
 | **零依赖核心库** | 根包纯计算、无任何外部依赖；文件 IO 只出现在命令行入口 |
 
 配色与交互行为对齐经典实现 `flamegraph.pl`，但对齐的只是**功能规格**——
-其源码采用 CDDL-1.0，与本项目的 Apache-2.0 不兼容，因此一行未复制。详见 [参考与许可](#参考与许可)。
+其源码采用 CDDL-1.0（文件级弱 copyleft，不是宽松许可），为避免任何许可证混用问题，
+其源码一行未复制。详见 [参考与许可](#参考与许可)。
 
 ## 快速验证
 
@@ -231,7 +232,8 @@ moon run cmd/main -- --help
 
 - 火焰图（Flame Graph）的概念与折叠栈格式由 **Brendan Gregg** 提出；
 - 渲染外观与交互行为对齐 [brendangregg/FlameGraph](https://github.com/brendangregg/FlameGraph) 的 `flamegraph.pl`：**暖色调色板的数值公式、差异配色规则、以及悬停 / 点击缩放 / Ctrl-F 搜索的交互语义**均与之兼容。
-  ⚠️ 该项目采用 **CDDL-1.0**（弱 copyleft），与本项目的 Apache-2.0 不兼容，因此**其源码一行未被复制**——只对齐功能规格，MoonBit 与 JavaScript 实现全部原创。详见 [`docs/DESIGN.md`](docs/DESIGN.md) §5b；
+  ⚠️ 该项目采用 **CDDL-1.0**——一种**文件级弱 copyleft**，不是宽松许可（它与 GPL 明确不兼容）。
+  为避免任何许可证混用问题，本项目**其源码一行未复制**，只对齐功能规格，MoonBit 与 JavaScript 实现全部原创。详见 [`docs/DESIGN.md`](docs/DESIGN.md) §5b；
 - 可选的上游数据来源：[mizchi/moon-pprof](https://github.com/mizchi/moon-pprof)（Apache-2.0），负责采样与格式归一；
 - 渲染正确性以 [google/pprof](https://github.com/google/pprof)（Apache-2.0）作为交叉验证基准；
 - `testdata/official-sample.wasm` 来自 moon-pprof 仓库的样例（Apache-2.0）。
