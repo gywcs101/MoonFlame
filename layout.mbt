@@ -44,6 +44,9 @@ pub struct Layout {
   total : Double
   /// 差异模式下最大的变化量绝对值，用于颜色归一化；非差异模式为 0
   max_delta : Double
+  /// 纵向方向：`false` 火焰图（根在底部），`true` 冰柱图（根在顶部）。
+  /// 交互脚本判断「祖先在上还是在下」时需要它。
+  inverted : Bool
 } derive(Eq)
 
 ///|
@@ -224,7 +227,15 @@ pub fn layout(
       None => ()
     }
   }
-  { rects, width, row_height, max_depth, total: tree.total, max_delta }
+  {
+    rects,
+    width,
+    row_height,
+    max_depth,
+    total: tree.total,
+    max_delta,
+    inverted: flip,
+  }
 }
 
 ///|

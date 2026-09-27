@@ -95,34 +95,50 @@ test "colours growth red and shrinkage blue" {
   )
   let worse = find_rect(layout.rects, "worse")
   let better = find_rect(layout.rects, "better")
+  // 经典 color_scale：变多是 rgb(255,s,s)（红通道恒满），
+  // 变少是 rgb(s,s,255)（蓝通道恒满）
   match worse.delta {
     Some(value) =>
       assert_true(
-        @moonflame.fill_for_delta(value, layout.max_delta).contains("hsl(0,"),
+        @moonflame.fill_for_delta(value, layout.max_delta).has_prefix(
+          "rgb(255,",
+        ),
       )
     None => fail("expected a delta")
   }
   match better.delta {
     Some(value) =>
       assert_true(
-        @moonflame.fill_for_delta(value, layout.max_delta).contains("hsl(214,"),
+        @moonflame.fill_for_delta(value, layout.max_delta).has_suffix(",255)"),
       )
     None => fail("expected a delta")
   }
 }
 
 ///|
-test "uses a neutral colour for a negligible change" {
-  assert_eq(@moonflame.fill_for_delta(0.0, 100.0), "hsl(0,0%,93%)")
-  assert_eq(@moonflame.fill_for_delta(1.0, 1000.0), "hsl(0,0%,93%)")
+test "uses pure white for an unchanged frame, never grey" {
+  // 灰色在浅色背景上读不出名字；经典实现用的是纯白
+  assert_eq(@moonflame.fill_for_delta(0.0, 100.0), "rgb(255,255,255)")
+  assert_eq(@moonflame.fill_for_delta(-0.0, 100.0), "rgb(255,255,255)")
+  // 归一化量为 0（没有变化可参照）时同样退化为白
+  assert_eq(@moonflame.fill_for_delta(5.0, 0.0), "rgb(255,255,255)")
+}
+
+///|
+test "keeps even a tiny change off grey" {
+  // 经典实现没有「忽略小变化」的阈值，任何非零变化都会带上一点红/蓝
+  assert_eq(@moonflame.fill_for_delta(1.0, 1000.0), "rgb(255,209,209)")
+  assert_eq(@moonflame.fill_for_delta(-1.0, 1000.0), "rgb(209,209,255)")
 }
 
 ///|
 test "scales colour depth with the size of the change" {
   let slight = @moonflame.fill_for_delta(10.0, 100.0)
   let severe = @moonflame.fill_for_delta(100.0, 100.0)
-  // 变化越大，颜色越深（亮度越低），两者不应相同
+  // 变化越大红得越纯：轻微变化接近白，最大变化是纯红
   assert_true(slight != severe)
+  assert_eq(severe, "rgb(255,0,0)")
+  assert_eq(slight, "rgb(255,189,189)")
 }
 
 ///|

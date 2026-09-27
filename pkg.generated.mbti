@@ -2,6 +2,12 @@
 package "gywcs101/moonflame"
 
 // Values
+pub const BASE_FONT_SIZE : Double = 12.0
+
+pub const CANVAS_XPAD : Double = 10.0
+
+pub const FRAME_HEIGHT : Double = 16.0
+
 pub fn aggregate(Array[Sample], max_depth? : Int) -> CallTree
 
 pub fn deeper_placeholder() -> String
@@ -51,6 +57,7 @@ pub struct Layout {
   max_depth : Int
   total : Double
   max_delta : Double
+  inverted : Bool
 } derive(Eq)
 pub fn Layout::height(Self) -> Double
 pub fn Layout::row_count(Self) -> Int

@@ -21,9 +21,9 @@
 | CLI（默认渲染模式） | ✅ 可用 |
 | 热点报告（`--top`） | ✅ 可用 |
 | 差异火焰图（`diff` 子命令） | ✅ 可用 |
-| 内嵌 JS 搜索 / 缩放 | 🚧 未实现（当前交互仅悬停提示） |
+| 内嵌 JS 交互（悬停 / 缩放 / 搜索） | ✅ 可用（直接打开 SVG 时生效） |
 
-> 已知的图形格式不足整理在 [docs/DESIGN.md](docs/DESIGN.md) §5b。
+> 与经典实现 `flamegraph.pl` 的对齐情况与仍存在的偏离，整理在 [docs/DESIGN.md](docs/DESIGN.md) §5b。
 
 ---
 
@@ -33,7 +33,7 @@
 moon run cmd/main -- testdata/demo.folded --out flame.svg
 ```
 
-用浏览器打开 `flame.svg`，鼠标悬停即可看到每个帧的名字、耗时与占比。
+用浏览器打开 `flame.svg`：悬停看每个帧的名字与占比，单击可缩放，`Ctrl-F` 搜索。
 
 > `testdata/demo.folded` 是随仓库提供的现成数据，**不需要安装任何采样工具**即可跑通。
 > 这些数据是怎么来的、以及怎么处理你自己的数据，见「[数据从哪来](#数据从哪来)」。
@@ -80,6 +80,24 @@ moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o 
 **已知取舍**：宽度按当前剖面走，因此**只在基线里出现的帧不会显示**。这与参考实现 `difffolded.pl` 一致；它的建议是交换两份文件再生成一张，从另一个方向看消失的帧。
 
 > ⚠️ `testdata/demo-baseline.folded` 是**构造**的基线（把冒泡排序放大 3 倍、字符串拼接缩小），仅用于演示与测试差异模式，不是真实采样。真实基线应当来自优化前的那次采样。
+
+### 交互与配色
+
+生成的 SVG 里嵌了脚本，**用浏览器直接打开**即可交互：
+
+| 操作 | 效果 |
+| --- | --- |
+| 悬停 | 底部信息栏显示该帧的完整名字、耗时与占比 |
+| 单击某帧 | 以它为根缩放展开；祖先帧变半透明，无关帧隐藏 |
+| 点 `Reset Zoom` | 复原到全图 |
+| `Ctrl-F` 或点 `Search` | 正则搜索，命中的帧高亮为品红，右下角显示命中占比 |
+| `Ctrl-I` 或点 `ic` | 切换搜索是否区分大小写 |
+
+配色沿用经典火焰图的**暖色调色板**（深红 → 橙 → 黄的单维渐变），同名帧同色，
+便于跨图追踪同一个函数。差异模式改用红/蓝：**红 = 变多**、**蓝 = 变少**、**白 = 无变化**。
+
+> ⚠️ 用 `<img>` 引用 SVG 时浏览器**不执行**其中的脚本——在 GitHub 上看本 README 的图只有静态外观。
+> 要体验交互，请把 `examples/flame.svg` 下载后用浏览器直接打开。
 
 ### 依赖说明
 
@@ -185,7 +203,7 @@ powershell demo/reproduce.ps1     # PowerShell 7 用户可换成 pwsh
 
 ```bash
 moon check          # 类型检查
-moon test           # 全部测试（115 个）
+moon test           # 全部测试（122 个）
 moon info && moon fmt   # 提交前更新接口并格式化
 moon run cmd/main -- --help
 ```
@@ -198,8 +216,9 @@ moon run cmd/main -- --help
 2. `moon-pprof` 需要 Rust 工具链（**仅采集端**）；**核心库零依赖**，只有 CLI 依赖官方包 `moonbitlang/x` 做文件读写；
 3. 递归程序会产生极深栈（实测最深 7254 层），超过深度上限的部分将被合并显示为 `(deeper)`；
 4. **上游采样分辨率取决于函数调用频率，而非运行时长**（实测：调用密集约 600 样本/秒，循环密集约 42 样本/秒，相差 14 倍）。因此短于约 25ms 的函数可能采不到，且**延长运行时间不会提高统计质量**。详见 [docs/DATA-PIPELINE.md](docs/DATA-PIPELINE.md)；
-5. 交互目前只有悬停提示，尚未内嵌 JS 搜索与点击缩放；
-6. 帧的横轴按**耗时降序**排列（权威实现按名字字母序），这是为了让宽帧聚集在左侧、更易读的刻意选择。
+5. 内嵌的交互脚本**只在直接打开 SVG 或以内联方式嵌入时执行**；用 `<img>` 引用（GitHub 渲染本 README 即是如此）时浏览器不会运行 SVG 内的脚本，只显示静态外观；
+6. 帧的横轴按**耗时降序**排列（经典实现按名字字母序），这是为了让宽帧聚集在左侧、更易读的刻意选择；
+7. 图中会出现 `(self)` 与 `(deeper)` 两个合成帧：前者是该函数的**自身耗时**，后者是超过深度上限被合并的更深帧。经典实现没有这两个节点，我们显式画出它们，是为了保证「父矩形宽度 = 子矩形宽度之和」这一不变量——否则图面上会出现空洞。
 
 ---
 
@@ -207,7 +226,9 @@ moon run cmd/main -- --help
 
 本项目为**原创项目**，未复制任何第三方源码。
 
-- 火焰图（Flame Graph）的概念与折叠栈格式由 **Brendan Gregg** 提出，本项目仅采用该公开格式与图形概念；
+- 火焰图（Flame Graph）的概念与折叠栈格式由 **Brendan Gregg** 提出；
+- 渲染外观与交互行为对齐 [brendangregg/FlameGraph](https://github.com/brendangregg/FlameGraph) 的 `flamegraph.pl`：**暖色调色板的数值公式、差异配色规则、以及悬停 / 点击缩放 / Ctrl-F 搜索的交互语义**均与之兼容。
+  ⚠️ 该项目采用 **CDDL-1.0**（弱 copyleft），与本项目的 Apache-2.0 不兼容，因此**其源码一行未被复制**——只对齐功能规格，MoonBit 与 JavaScript 实现全部原创。详见 [docs/DESIGN.md](docs/DESIGN.md) §5b；
 - 可选的上游数据来源：[mizchi/moon-pprof](https://github.com/mizchi/moon-pprof)（Apache-2.0），负责采样与格式归一；
 - 渲染正确性以 [google/pprof](https://github.com/google/pprof)（Apache-2.0）作为交叉验证基准；
 - `testdata/official-sample.wasm` 来自 moon-pprof 仓库的样例（Apache-2.0）。

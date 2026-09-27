@@ -84,10 +84,13 @@ fn run(config : @cli.Config) -> Unit {
   }
   match config.out {
     Some(path) => {
+      // `--width` 指的是最终画布宽度，左右留白由渲染层占用，
+      // 因此交给布局的是扣掉留白后的内容宽度。
+      let content_width = config.width - 2.0 * @moonflame.CANVAS_XPAD
       let layout = @moonflame.layout(
         tree,
-        config.width,
-        20.0,
+        content_width,
+        @moonflame.FRAME_HEIGHT,
         inverted=config.inverted,
       )
       let svg = @moonflame.render_svg(layout)
