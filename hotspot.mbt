@@ -108,7 +108,8 @@ fn format_percent(ratio : Double) -> String {
 ///|
 /// 权重通常是较大的整数（如纳秒），按整数展示；非整数则保留原样。
 fn format_weight(value : Double) -> String {
-  let rounded = (value + 0.5).to_int()
+  // 负数要朝绝对值更大的方向取整，否则 -1200000 会被写成 -1199999
+  let rounded = (if value < 0.0 { value - 0.5 } else { value + 0.5 }).to_int()
   if rounded.to_double() == value {
     rounded.to_string()
   } else {

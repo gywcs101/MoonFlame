@@ -4,6 +4,11 @@
 
 不依赖 Go、Node 或任何运行时——产物是单个文件，双击即看，可直接贴进 README。
 
+![示例火焰图](examples/flame.svg)
+
+> 上图由 `moon run cmd/main -- testdata/demo.folded --out examples/flame.svg` 生成，
+> 输入是 `testdata/demo.folded`（真实采样数据）。用浏览器打开可悬停查看每个帧的名字与占比。
+
 ---
 
 ## 项目状态
@@ -13,9 +18,12 @@
 | 数据链路（采样 → 折叠栈） | ✅ 已跑通并交叉验证 |
 | 演示负载与样例数据 | ✅ 已完成（`demo/` + `testdata/`） |
 | 渲染器（解析 / 聚合 / 限深合并 / 布局 / SVG） | ✅ 可用 |
-| CLI（`render` 子命令） | ✅ 可用 |
+| CLI（默认渲染模式） | ✅ 可用 |
 | 热点报告（`--top`） | ✅ 可用 |
-| 差异火焰图 | 🚧 开发中 |
+| 差异火焰图（`diff` 子命令） | ✅ 可用 |
+| 内嵌 JS 搜索 / 缩放 | 🚧 未实现（当前交互仅悬停提示） |
+
+> 已知的图形格式不足整理在 [docs/DESIGN.md](docs/DESIGN.md) §5b。
 
 ---
 
@@ -45,6 +53,30 @@ moon run cmd/main -- testdata/demo.folded --top 10
 | `--top <n>` | 打印前 N 个热点 |
 | `--width <px>` | 画布宽度，默认 1400 |
 | `--inverted` | 输出冰柱方向（根在顶部）；默认是火焰图方向（根在底部） |
+
+### 差异火焰图
+
+对比优化前后（或升级前后）两份剖面，把差异直接画进颜色里：
+
+```bash
+moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o flame-diff.svg
+```
+
+![差异火焰图](examples/flame-diff.svg)
+
+| 视觉通道 | 含义 |
+| --- | --- |
+| **宽度** | 按**当前**（第二个）剖面 —— 看清现在的时间花在哪 |
+| 🔴 **红** | 该帧**变多了**（劣化），颜色越深变化越大 |
+| 🔵 **蓝** | 该帧**变少了**（改善） |
+| ⚪ **灰** | 变化可以忽略 |
+| **悬停** | 额外显示带符号的变化量 |
+
+颜色用全图最大的变化量做归一化——不归一化的话，只要有一处剧变，其它变化在颜色上就会全糊成一片。
+
+**已知取舍**：宽度按当前剖面走，因此**只在基线里出现的帧不会显示**。这与参考实现 `difffolded.pl` 一致；它的建议是交换两份文件再生成一张，从另一个方向看消失的帧。
+
+> ⚠️ `testdata/demo-baseline.folded` 是**构造**的基线（把冒泡排序放大 3 倍、字符串拼接缩小），仅用于演示与测试差异模式，不是真实采样。真实基线应当来自优化前的那次采样。
 
 ### 依赖说明
 
@@ -95,20 +127,43 @@ pwsh demo/reproduce.ps1
 
 ```text
 .
-├── LICENSE                      Apache-2.0
+├── LICENSE                       Apache-2.0
+├── folded.mbt                    折叠栈解析
+├── calltree.mbt                  调用树聚合 / 限深合并 / 差异标注
+├── hotspot.mbt                   Top-N 热点报告
+├── layout.mbt                    矩形布局（火焰图 / 冰柱两种方向）
+├── svg.mbt                       SVG 渲染（暖色 / 差异配色）
+├── cli/                          命令行参数解析（独立包，可脱离文件系统测试）
+├── cmd/main/                     入口：读文件 → 调用核心库 → 写文件
 ├── docs/
-│   ├── DESIGN.md                项目设计（定位、格式、算法、实现要点）
-│   ├── DATA-PIPELINE.md         数据链路验证报告（含环境踩坑与关键发现）
-│   └── APPLICATION.md           项目申报书
-├── demo/                        演示负载（MoonBit，可复现样例数据）
-│   └── reproduce.ps1            一键复现脚本
+│   ├── DESIGN.md                 项目设计（定位、格式、算法、已知不足）
+│   ├── DATA-PIPELINE.md          数据链路验证报告（含环境踩坑与关键发现）
+│   └── APPLICATION.md            项目申报书
+├── demo/                         演示负载（独立模块，可复现样例数据）
+│   └── reproduce.ps1             一键复现脚本
+├── examples/                     CLI 生成的示例图
 ├── testdata/
-│   ├── demo.folded              ⭐ 主样例：32 栈 / 深度 3–28 / 888ms
-│   ├── stress-recursive.folded  极限用例：79 栈 / 最深 7254 层
-│   └── official-sample.*        上游样例（Apache-2.0）
+│   ├── demo.folded               ⭐ 主样例：32 栈 / 深度 3–28 / 888ms
+│   ├── demo-baseline.folded      构造的基线，用于演示差异模式
+│   ├── stress-recursive.folded   极限用例：79 栈 / 最深 7254 层
+│   └── official-sample.*         上游样例（Apache-2.0）
 └── tools/
-    ├── analyze_folded.js        折叠栈结构分析
-    └── check_topic.js           生态撞车自查（mooncakes.io）
+    ├── analyze_folded.js         折叠栈结构分析
+    └── check_topic.js            生态撞车自查（mooncakes.io）
+```
+
+**分层原则**：根包只做纯计算、零外部依赖；参数解析单独成包以便脱离文件系统测试；
+文件 IO 只出现在入口包——核心逻辑因此可以在没有文件系统的环境（如 wasm）里复用。
+
+---
+
+## 开发
+
+```bash
+moon check          # 类型检查
+moon test           # 全部测试（115 个）
+moon info && moon fmt   # 提交前更新接口并格式化
+moon run cmd/main -- --help
 ```
 
 ---
@@ -116,9 +171,11 @@ pwsh demo/reproduce.ps1
 ## 已知限制
 
 1. 上游采样**仅支持 wasm / wasm-gc** 目标，native CPU 采样不可用；
-2. `moon-pprof` 需要 Rust 工具链，但**仅用于采集端**；渲染器本身零依赖；
-3. 递归程序会产生极深栈（实测最深 7254 层），超过深度上限的部分将被合并显示；
-4. **上游采样分辨率取决于函数调用频率，而非运行时长**（实测：调用密集约 600 样本/秒，循环密集约 42 样本/秒，相差 14 倍）。因此短于约 25ms 的函数可能采不到，且**延长运行时间不会提高统计质量**。详见 [docs/DATA-PIPELINE.md](docs/DATA-PIPELINE.md)。
+2. `moon-pprof` 需要 Rust 工具链（**仅采集端**）；**核心库零依赖**，只有 CLI 依赖官方包 `moonbitlang/x` 做文件读写；
+3. 递归程序会产生极深栈（实测最深 7254 层），超过深度上限的部分将被合并显示为 `(deeper)`；
+4. **上游采样分辨率取决于函数调用频率，而非运行时长**（实测：调用密集约 600 样本/秒，循环密集约 42 样本/秒，相差 14 倍）。因此短于约 25ms 的函数可能采不到，且**延长运行时间不会提高统计质量**。详见 [docs/DATA-PIPELINE.md](docs/DATA-PIPELINE.md)；
+5. 交互目前只有悬停提示，尚未内嵌 JS 搜索与点击缩放；
+6. 帧的横轴按**耗时降序**排列（权威实现按名字字母序），这是为了让宽帧聚集在左侧、更易读的刻意选择。
 
 ---
 

@@ -6,6 +6,10 @@ pub fn aggregate(Array[Sample], max_depth? : Int) -> CallTree
 
 pub fn deeper_placeholder() -> String
 
+pub fn diff_against(CallTree, CallTree) -> CallTree
+
+pub fn fill_for_delta(Double, Double) -> String
+
 pub fn fill_of(String) -> String
 
 pub fn layout(CallTree, Double, Double, inverted? : Bool) -> Layout
@@ -31,6 +35,7 @@ pub struct CallTree {
   roots : Array[Node]
   total : Double
 } derive(Eq)
+pub fn CallTree::max_delta(Self) -> Double
 
 pub struct Hotspot {
   name : String
@@ -45,6 +50,7 @@ pub struct Layout {
   row_height : Double
   max_depth : Int
   total : Double
+  max_delta : Double
 } derive(Eq)
 pub fn Layout::height(Self) -> Double
 pub fn Layout::row_count(Self) -> Int
@@ -53,6 +59,7 @@ pub struct Node {
   name : String
   value : Double
   children : Array[Node]
+  delta : Double?
 } derive(Eq)
 pub fn Node::child(Self, String) -> Self?
 pub fn Node::self_ratio(Self, Double) -> Double
@@ -71,6 +78,7 @@ pub struct Rect {
   name : String
   value : Double
   depth : Int
+  delta : Double?
 } derive(Eq)
 
 pub struct Sample {

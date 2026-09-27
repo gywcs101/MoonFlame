@@ -89,3 +89,52 @@ test "exposes help text for the CLI" {
   assert_true(help.contains("max-depth"))
   assert_true(help.contains("inverted"))
 }
+
+///|
+test "render mode carries no baseline" {
+  assert_true(config_of(["demo.folded"]).baseline is None)
+}
+
+///|
+test "parses the diff subcommand" {
+  let config = config_of([
+    "diff", "before.folded", "after.folded", "-o", "diff.svg",
+  ])
+  guard config.baseline is Some(before) else { fail("expected a baseline") }
+  assert_eq(before, "before.folded")
+  // 宽度按当前剖面走，因此 input 是「之后」的那份
+  assert_eq(config.input, "after.folded")
+  guard config.out is Some(path) else { fail("expected an output path") }
+  assert_eq(path, "diff.svg")
+  // 差异模式不打印热点榜
+  assert_true(config.top is None)
+}
+
+///|
+test "diff subcommand applies the same draw defaults" {
+  let config = config_of(["diff", "b.folded", "a.folded"])
+  assert_eq(config.max_depth, @cli.DEFAULT_MAX_DEPTH)
+  assert_eq(config.width, @cli.DEFAULT_WIDTH)
+  assert_false(config.inverted)
+  assert_true(config.out is None)
+}
+
+///|
+test "diff subcommand accepts draw options" {
+  let config = config_of([
+    "diff", "b.folded", "a.folded", "--max-depth", "4", "--width", "900", "--inverted",
+  ])
+  assert_eq(config.max_depth, 4)
+  assert_eq(config.width, 900.0)
+  assert_true(config.inverted)
+}
+
+///|
+test "diff subcommand needs both profiles" {
+  let outcome : Result[@cli.Config, Error] = Ok(
+    @cli.parse_config(["diff", "only.folded"]),
+  ) catch {
+    error => Err(error)
+  }
+  assert_true(outcome is Err(_))
+}

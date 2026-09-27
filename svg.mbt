@@ -50,6 +50,40 @@ pub fn fill_of(name : String) -> String {
 }
 
 ///|
+/// 差异模式的配色：**红 = 变多（劣化）**、**蓝 = 变少（改善）**、灰 = 基本没变。
+///
+/// 用 `max_delta` 归一化：不归一化的话，只要有一处剧变，
+/// 其它所有变化在颜色上就会全糊成一片，等于没画。
+/// 色深随变化幅度递增，因此一眼能看出哪几处改动最要紧。
+pub fn fill_for_delta(delta : Double, max_delta : Double) -> String {
+  let ratio = if max_delta > 0.0 {
+    (delta / max_delta).clamp(min=-1.0, max=1.0)
+  } else {
+    0.0
+  }
+  let magnitude = if ratio < 0.0 { -ratio } else { ratio }
+  if magnitude < 0.02 {
+    return "hsl(0,0%,93%)"
+  }
+  let lightness = 88 - (magnitude * 36.0).to_int()
+  if ratio > 0.0 {
+    "hsl(0,78%,\{lightness}%)"
+  } else {
+    "hsl(214,78%,\{lightness}%)"
+  }
+}
+
+///|
+/// 变化量的文本表示，正数带 `+` 号便于识别。
+fn format_delta(delta : Double) -> String {
+  if delta > 0.0 {
+    "+" + format_weight(delta)
+  } else {
+    format_weight(delta)
+  }
+}
+
+///|
 /// XML 文本转义。`&` 必须最先替换，否则会把后面生成的实体二次转义。
 fn escape_xml(text : String) -> String {
   text
@@ -159,10 +193,19 @@ pub fn render_svg(
       quantized_text(bottom - top) +
       "\"",
     )
-    sb.write_string(" fill=\"" + fill_of(rect.name) + "\"")
+    // 差异模式下按变化量着色，否则按帧名着暖色
+    let fill = match rect.delta {
+      Some(delta) => fill_for_delta(delta, layout.max_delta)
+      None => fill_of(rect.name)
+    }
+    sb.write_string(" fill=\"" + fill + "\"")
     sb.write_string(" stroke=\"#fff\" rx=\"2\" ry=\"2\">")
     // 悬停提示：零 JavaScript 的交互
     let ratio = if layout.total > 0.0 { rect.value / layout.total } else { 0.0 }
+    let delta_text = match rect.delta {
+      Some(delta) => " " + format_delta(delta)
+      None => ""
+    }
     sb.write_string(
       "<title>" +
       escape_xml(rect.name) +
@@ -170,7 +213,9 @@ pub fn render_svg(
       format_weight(rect.value) +
       " (" +
       format_percent(ratio) +
-      ")</title>",
+      ")" +
+      delta_text +
+      "</title>",
     )
     sb.write_string("</rect>\n")
     if labels {

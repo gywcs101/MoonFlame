@@ -12,6 +12,8 @@ pub const DEFAULT_WIDTH : Double = 1400.0
 
 pub fn command() -> @argparse.Command
 
+pub fn diff_command() -> @argparse.Command
+
 pub fn parse_config(ArrayView[String]) -> Config raise
 
 // Errors
@@ -19,6 +21,7 @@ pub fn parse_config(ArrayView[String]) -> Config raise
 // Types and methods
 pub struct Config {
   input : String
+  baseline : String?
   out : String?
   max_depth : Int
   top : Int?

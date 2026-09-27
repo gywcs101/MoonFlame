@@ -26,6 +26,8 @@ pub struct Rect {
   /// 累计权重；合成项（自身耗时）则为该帧的自身耗时
   value : Double
   depth : Int
+  /// 差异模式下的变化量；普通模式下为 `None`
+  delta : Double?
 } derive(Eq)
 
 ///|
@@ -40,6 +42,8 @@ pub struct Layout {
   max_depth : Int
   /// 全部权重之和，用于计算占比
   total : Double
+  /// 差异模式下最大的变化量绝对值，用于颜色归一化；非差异模式为 0
+  max_delta : Double
 } derive(Eq)
 
 ///|
@@ -87,6 +91,7 @@ fn layout_node(
     name: node.name,
     value: node.value,
     depth,
+    delta: node.delta,
   })
   if span <= 0.0 || node.value <= 0.0 {
     return
@@ -103,6 +108,26 @@ fn layout_node(
   let own = node.self_time()
   if own > 0.0 && items.length() > 0 {
     items.push({ name: self_placeholder(), value: own, node: None })
+  }
+  // 自身耗时的变化量 = 本节点的变化量 − 子节点变化量之和。
+  // 任一子节点没有变化量（非差异模式）时，合成项也不带变化量。
+  let self_delta = match node.delta {
+    Some(total) => {
+      let mut sum = 0.0
+      let mut complete = true
+      for child in node.children {
+        match child.delta {
+          Some(value) => sum = sum + value
+          None => complete = false
+        }
+      }
+      if complete {
+        Some(total - sum)
+      } else {
+        None
+      }
+    }
+    None => None
   }
   items.sort_by(compare_items)
   let mut cursor = x0
@@ -127,6 +152,7 @@ fn layout_node(
           name: item.name,
           value: item.value,
           depth: depth + 1,
+          delta: self_delta,
         })
     }
     cursor = next
@@ -185,7 +211,20 @@ pub fn layout(
       rect.y = (max_depth - rect.depth).to_double() * row_height
     }
   }
-  { rects, width, row_height, max_depth, total: tree.total }
+  // 差异配色需要一个统一的量级做归一化，否则一处剧变就会让其它差别看不出来
+  let mut max_delta = 0.0
+  for rect in rects {
+    match rect.delta {
+      Some(value) => {
+        let magnitude = if value < 0.0 { -value } else { value }
+        if magnitude > max_delta {
+          max_delta = magnitude
+        }
+      }
+      None => ()
+    }
+  }
+  { rects, width, row_height, max_depth, total: tree.total, max_delta }
 }
 
 ///|

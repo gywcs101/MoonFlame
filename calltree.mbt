@@ -18,6 +18,8 @@ pub struct Node {
   value : Double
   /// 子节点：按 value 降序，同值按 name 升序
   children : Array[Node]
+  /// 差异模式下的变化量（本剖面相对基线的差值）；普通模式下为 `None`
+  delta : Double?
 } derive(Eq)
 
 ///|
@@ -116,7 +118,82 @@ fn Builder::materialize(self : Builder) -> Node {
     children.push(pair.1.materialize())
   }
   children.sort_by(compare_nodes)
-  { name: self.name, value: self.value, children }
+  { name: self.name, value: self.value, children, delta: None }
+}
+
+///|
+/// 按名字给一层子节点建索引，用于两份剖面的对齐。
+fn index_by_name(nodes : Array[Node]) -> Map[String, Node] {
+  let index : Map[String, Node] = Map([])
+  for node in nodes {
+    index.set(node.name, node)
+  }
+  index
+}
+
+///|
+/// 递归标注变化量：以 `baseline` 为基线，给 `nodes` 中每个节点算出差值。
+fn annotate(nodes : Array[Node], baseline : Array[Node]) -> Array[Node] {
+  let index = index_by_name(baseline)
+  let out : Array[Node] = []
+  for node in nodes {
+    let matched = index.get(node.name)
+    let base_value = match matched {
+      Some(other) => other.value
+      None => 0.0
+    }
+    let base_children = match matched {
+      Some(other) => other.children
+      None => []
+    }
+    out.push({
+      name: node.name,
+      value: node.value,
+      delta: Some(node.value - base_value),
+      children: annotate(node.children, base_children),
+    })
+  }
+  out
+}
+
+///|
+/// 把两份剖面叠加，给 `tree` 的每个节点标注相对 `baseline` 的变化量。
+///
+/// **宽度仍按 `tree`（当前剖面）计算**，因此只在基线里出现的帧不会显示——
+/// 这与参考实现 `difffolded.pl` 的取舍一致（它的建议是交换两份文件再生成一张，
+/// 从另一个方向看消失的帧）。
+pub fn diff_against(tree : CallTree, baseline : CallTree) -> CallTree {
+  { roots: annotate(tree.roots, baseline.roots), total: tree.total }
+}
+
+///|
+/// 树中最大的变化量绝对值，用于把差异配色归一化到同一量级。
+///
+/// 不做归一化的话，只要有一处剧变，其它所有变化在颜色上就全糊成一片。
+pub fn CallTree::max_delta(self : CallTree) -> Double {
+  let mut largest = 0.0
+  for root in self.roots {
+    let magnitude = max_delta_of(root)
+    if magnitude > largest {
+      largest = magnitude
+    }
+  }
+  largest
+}
+
+///|
+fn max_delta_of(node : Node) -> Double {
+  let mut largest = match node.delta {
+    Some(value) => if value < 0.0 { -value } else { value }
+    None => 0.0
+  }
+  for child in node.children {
+    let magnitude = max_delta_of(child)
+    if magnitude > largest {
+      largest = magnitude
+    }
+  }
+  largest
 }
 
 ///|

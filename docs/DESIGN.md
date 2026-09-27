@@ -1,4 +1,4 @@
-﻿# MoonFlame 项目设计
+# MoonFlame 项目设计
 
 > **一句话**：用纯 MoonBit 把「折叠栈」文本渲染成一张可交互的静态 SVG 火焰图。
 >
@@ -167,34 +167,63 @@ pub struct Node {
 
 ```text
 moonflame/
-├── LICENSE                  # Apache-2.0
-├── README.mbt.md            # 代码块会被 moon test 真实执行
-├── moon.mod
-├── moon.pkg
-├── moonflame.mbt            # 核心：解析 / 聚合 / 布局
-├── svg.mbt                  # SVG 渲染
-├── moonflame_test.mbt       # 黑盒测试
-├── cmd/main/
-│   ├── moon.pkg             # options("is-main": true)
-│   └── main.mbt             # 入口：一条命令出结果
-├── demo/                    # 演示负载（MoonBit，可复现 demo 数据）
-│   ├── demo.mbt             # 4 个阶段：排序 / 字符串 / 矩阵 / 递归
-│   └── reproduce.ps1        # 一键复现：编译 → 采样 → 转折叠栈
+├── LICENSE                      # Apache-2.0
+├── README.md
+├── moon.mod                     # 依赖 moonbitlang/x（仅 CLI 需要）
+├── moon.pkg                     # 根包：纯渲染逻辑，零依赖
+│
+├── folded.mbt                   # 折叠栈解析
+├── calltree.mbt                 # 调用树聚合 / 限深合并 / 差异标注
+├── hotspot.mbt                  # Top-N 热点报告
+├── layout.mbt                   # 矩形布局（火焰图 / 冰柱两种方向）
+├── svg.mbt                      # SVG 渲染（暖色 / 差异配色）
+├── *_test.mbt                   # 黑盒测试
+│
+├── cli/                         # 命令行参数解析（独立包，可单独测试）
+├── cmd/main/                    # 入口：读文件 → 调用核心 → 写文件
+│
+├── demo/                        # 演示负载（独立模块，产出样例数据）
+│   ├── demo.mbt                 # 4 个阶段：排序 / 字符串 / 矩阵 / 递归
+│   └── reproduce.ps1            # 一键复现：编译 → 采样 → 转折叠栈
+│
+├── examples/                    # CLI 生成的示例图
 └── testdata/
-    ├── demo.folded          # ⭐ 主 demo 数据：33 栈 / 深度 3–29 / 894.6ms
-    ├── demo.wasm, demo.pb.gz
+    ├── demo.folded              # ⭐ 主 demo 数据：32 栈 / 深度 3–28 / 888ms
+    ├── demo-baseline.folded     # 构造的基线，用于演示差异模式（非真实采样）
     ├── stress-recursive.folded  # ⭐ 极限用例：79 栈 / 最深 7254 层 / 5.5MB
     └── official-sample.wasm, .pb.gz  # 上游样例（Apache-2.0，注明来源）
 ```
 
-**CLI 设计（参数不超过 5 个）**：
+**分层原则**：根包只做纯计算、零外部依赖；参数解析单独成包以便脱离文件系统测试；
+文件 IO 只出现在入口包。这样核心逻辑可以在没有文件系统的环境（如 wasm）里复用。
+
+**CLI 设计**：
 
 ```bash
-moonflame render input.folded --out flame.svg
-moonflame render input.folded --max-depth 32 --inverted
-moonflame render input.folded --top 10          # 只输出文本热点
-moonflame diff before.folded after.folded --out diff.svg
+moonflame <input> --out flame.svg                    # 渲染
+moonflame <input> --top 10                           # 只输出文本热点
+moonflame <input> --max-depth 8 --inverted --width 1000
+moonflame diff <before> <after> --out diff.svg       # 差异火焰图
 ```
+
+顶层参数：`<input>`、`--out`、`--max-depth`、`--top`、`--width`、`--inverted`；
+`diff` 子命令自带 `<before> <after>` 与同一组绘制选项。
+
+---
+
+## 5b. 已知不足与待办
+
+以下是已识别、但尚未处理的图形格式问题（按严重程度排列）：
+
+| # | 问题 | 说明 |
+| --- | --- | --- |
+| 1 | **缺少内嵌 JS 交互** | 权威实现 `flamegraph.pl` 在 SVG 里内嵌了正则搜索、Ctrl-F、点击缩放。我们目前只有 `<title>` 悬停——「可交互」只做了一半 |
+| 2 | **示例图不够饱满** | `demo` 负载里的 `fib(32)` 是单链递归，深度 32 而其它阶段只有 4–5 层，导致图的上半部大面积为空。修法：换成"浅而调用密集"的分支递归（保持采样密度、去掉深链） |
+| 3 | 缺少标题 / 副标题栏 | 权威实现会渲染标题与统计信息 |
+| 4 | 排序口径未文档化 | 权威按名字字母序，我们按耗时降序（更易读），属刻意偏离，需在 README 说明 |
+| 5 | `(self)` 合成帧是刻意偏离 | 权威实现**没有**这个节点；我们做得更显式，需在 README 说明 |
+| 6 | `minwidth` 默认偏保守 | 权威是 0.1px，我们是 0.5px |
+| 7 | 差异模式只出一个方向 | 权威建议同时出"以基线为宽"的版本（交换文件 + 翻转色相），才能看到消失的帧 |
 
 ---
 
