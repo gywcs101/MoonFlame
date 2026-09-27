@@ -51,21 +51,29 @@ test "escapes xml special characters in frame names" {
 test "colours identical frame names identically" {
   // leaf 出现在两条不同路径下，颜色必须一致
   let svg = svg_of("main;a;leaf 10\nmain;b;leaf 20", 0)
-  let hue = @moonflame.color_hue("leaf").to_string()
-  let fill = "fill=\"hsl(" + hue + ",62%,68%)\""
+  let fill = "fill=\"" + @moonflame.fill_of("leaf") + "\""
   assert_true(svg.contains(fill))
-  // 两个 leaf 矩形（分别在 a、b 之下）必须着同一种颜色\n  assert_true(count_of(svg, fill) >= 2)
+  // 两个 leaf 矩形（分别在 a、b 之下）必须着同一种颜色
+  assert_true(count_of(svg, fill) >= 2)
 }
 
 ///|
-test "keeps hues inside the hsl range" {
+test "gives synthetic frames a neutral colour" {
+  // 合成帧用灰，和真实帧一眼区分
+  assert_eq(@moonflame.fill_of("(self)"), "hsl(0,0%,84%)")
+  assert_eq(@moonflame.fill_of("(deeper)"), "hsl(0,0%,84%)")
+  assert_eq(@moonflame.fill_of("(root)"), "hsl(0,0%,84%)")
+}
+
+///|
+test "colours real frames with the warm palette" {
   for
     name in [
       "", "main", "a&b<c>d", "mizchi::bench::ackermann", "____moonbit__main",
     ] {
-    let hue = @moonflame.color_hue(name)
-    assert_true(hue >= 0)
-    assert_true(hue < 360)
+    let fill = @moonflame.fill_of(name)
+    assert_true(fill.has_prefix("hsl("))
+    assert_true(!fill.contains("0,0%"))
   }
 }
 

@@ -17,7 +17,9 @@
 /// 一个待绘制的矩形。
 pub struct Rect {
   x : Double
-  y : Double
+  /// 纵向位置。由 `layout` 在排布完成后统一确定：
+  /// 火焰图方向下根在底部，因此 y 依赖整棵树的最大深度。
+  mut y : Double
   width : Double
   height : Double
   name : String
@@ -135,7 +137,24 @@ fn layout_node(
 /// 把调用树布局成矩形列表（前序遍历顺序：父节点先于子节点）。
 ///
 /// 多个根节点时按各自权重水平切分画布。
-pub fn layout(tree : CallTree, width : Double, row_height : Double) -> Layout {
+///
+/// `inverted` 选择纵向方向：
+///
+///   - **默认（false）火焰图**：根在**底部**，逐层向上生长。底部密、顶部疏，
+///     高耗时路径表现为向上伸出的「火苗」——这是 Brendan Gregg 定义的经典形态。
+///   - `inverted = true` 冰柱图（icicle）：根在顶部，逐层向下。
+///
+/// 两种方向都只影响 y 坐标，水平切分完全一致。
+pub fn layout(
+  tree : CallTree,
+  width : Double,
+  row_height : Double,
+  inverted? : Bool,
+) -> Layout {
+  let flip = match inverted {
+    Some(value) => value
+    None => false
+  }
   let rects : Array[Rect] = []
   if width > 0.0 &&
     row_height > 0.0 &&
@@ -158,6 +177,12 @@ pub fn layout(tree : CallTree, width : Double, row_height : Double) -> Layout {
   for rect in rects {
     if rect.depth > max_depth {
       max_depth = rect.depth
+    }
+  }
+  // 方向直到这里才能确定：火焰图的根在底部，y 取决于整棵树的最大深度
+  if !flip {
+    for rect in rects {
+      rect.y = (max_depth - rect.depth).to_double() * row_height
     }
   }
   { rects, width, row_height, max_depth, total: tree.total }

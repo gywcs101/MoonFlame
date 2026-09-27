@@ -13,17 +13,40 @@
 ///   - **标签按预估宽度决定画不画**——SVG 不会自动排版，窄框里写字会溢出。
 
 ///|
-/// 帧名到色相的映射，渲染器用它给同名帧着同一种颜色。
+/// 帧名的稳定哈希。
 ///
 /// 刻意不用 `String::hash`：颜色必须跨运行、跨后端、跨语言版本保持稳定，
 /// 否则同一份输入会渲染出不同的图，快照测试便无从谈起。
 /// 这里只用乘加与掩码，所有中间值都落在 32 位安全范围内。
-pub fn color_hue(name : String) -> Int {
+fn name_hash(name : String) -> Int {
   let mut h = 7
   for c in name {
     h = (h * 31 + Char::to_int(c)) & 0xFFFFFF
   }
-  h % 360
+  h
+}
+
+///|
+/// 合成帧用中性灰，与真实帧一眼区分：
+/// `(self)` 是自身耗时、`(deeper)` 是被合并的更深帧、`(root)` 是空帧兜底。
+fn is_synthetic(name : String) -> Bool {
+  name == self_placeholder() || name == deeper_placeholder() || name == "(root)"
+}
+
+///|
+/// 帧名对应的填充色。
+///
+/// 采用火焰图惯用的**暖色**：色相固定在橙→黄区间，靠明度拉开相邻帧的差异。
+/// 全色相彩虹虽然更花哨，但暖色渐变读起来更安静，也是 Brendan Gregg
+/// 原始实现的默认调色板（`hot`）。同名同色，便于跨图对比。
+pub fn fill_of(name : String) -> String {
+  if is_synthetic(name) {
+    return "hsl(0,0%,84%)"
+  }
+  let h = name_hash(name)
+  let hue = 12 + h % 44
+  let light = 60 + h / 44 % 20
+  "hsl(\{hue},78%,\{light}%)"
 }
 
 ///|
@@ -136,10 +159,8 @@ pub fn render_svg(
       quantized_text(bottom - top) +
       "\"",
     )
-    sb.write_string(
-      " fill=\"hsl(" + color_hue(rect.name).to_string() + ",62%,68%)\"",
-    )
-    sb.write_string(" stroke=\"#fff\">")
+    sb.write_string(" fill=\"" + fill_of(rect.name) + "\"")
+    sb.write_string(" stroke=\"#fff\" rx=\"2\" ry=\"2\">")
     // 悬停提示：零 JavaScript 的交互
     let ratio = if layout.total > 0.0 { rect.value / layout.total } else { 0.0 }
     sb.write_string(

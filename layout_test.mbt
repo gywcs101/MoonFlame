@@ -63,19 +63,44 @@ test "places a single root across the full width" {
   let main = find_rect(l.rects, "main")
   assert_eq(main.x, 0.0)
   assert_eq(main.width, 800.0)
-  assert_eq(main.y, 0.0)
   assert_eq(main.depth, 0)
 }
 
 ///|
-test "maps depth to the vertical axis" {
+test "grows upward with the root at the bottom by default" {
+  // 火焰图的经典形态：根在底部，深度越大越靠上
   let l = @moonflame.layout(tree_of("a;b;c 100", 0), 100.0, 15.0)
-  assert_eq(find_rect(l.rects, "a").y, 0.0)
+  assert_eq(find_rect(l.rects, "c").y, 0.0)
   assert_eq(find_rect(l.rects, "b").y, 15.0)
-  assert_eq(find_rect(l.rects, "c").y, 30.0)
+  assert_eq(find_rect(l.rects, "a").y, 30.0)
   assert_eq(l.max_depth, 2)
   assert_eq(l.row_count(), 3)
   assert_eq(l.height(), 45.0)
+}
+
+///|
+test "grows downward when inverted" {
+  // 冰柱图：根在顶部，逐层向下
+  let l = @moonflame.layout(tree_of("a;b;c 100", 0), 100.0, 15.0, inverted=true)
+  assert_eq(find_rect(l.rects, "a").y, 0.0)
+  assert_eq(find_rect(l.rects, "b").y, 15.0)
+  assert_eq(find_rect(l.rects, "c").y, 30.0)
+  assert_eq(l.row_count(), 3)
+}
+
+///|
+test "keeps the same row set in both orientations" {
+  // 方向只影响 y，不该改变行数与每个矩形的水平几何
+  let text = "root;a;x 30\nroot;a;y 20\nroot;b 50"
+  let flame = @moonflame.layout(tree_of(text, 0), 1000.0, 20.0)
+  let icicle = @moonflame.layout(tree_of(text, 0), 1000.0, 20.0, inverted=true)
+  assert_eq(flame.rects.length(), icicle.rects.length())
+  assert_eq(flame.max_depth, icicle.max_depth)
+  for i = 0; i < flame.rects.length(); i = i + 1 {
+    assert_eq(flame.rects[i].x, icicle.rects[i].x)
+    assert_eq(flame.rects[i].width, icicle.rects[i].width)
+    assert_eq(flame.rects[i].depth, icicle.rects[i].depth)
+  }
 }
 
 ///|

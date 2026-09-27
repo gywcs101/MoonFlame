@@ -4,11 +4,11 @@ package "gywcs101/moonflame"
 // Values
 pub fn aggregate(Array[Sample], max_depth? : Int) -> CallTree
 
-pub fn color_hue(String) -> Int
-
 pub fn deeper_placeholder() -> String
 
-pub fn layout(CallTree, Double, Double) -> Layout
+pub fn fill_of(String) -> String
+
+pub fn layout(CallTree, Double, Double, inverted? : Bool) -> Layout
 
 pub fn parse_folded(String) -> ParseResult
 
@@ -65,7 +65,7 @@ pub struct ParseResult {
 
 pub struct Rect {
   x : Double
-  y : Double
+  mut y : Double
   width : Double
   height : Double
   name : String
