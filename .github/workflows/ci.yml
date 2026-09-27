@@ -141,7 +141,7 @@ jobs:
       - name: 用自带样例数据出图
         shell: bash
         run: |
-          moon run cmd/main -- testdata/demo.folded --top 5 --out flame.svg
+          moon run cmd/main -- testdata/demo.folded --out flame.svg
           test -s flame.svg || { echo "::error::未生成 SVG"; exit 1; }
           grep -q '<g id="frames">' flame.svg || { echo "::error::SVG 结构异常"; exit 1; }
 
@@ -151,6 +151,26 @@ jobs:
           moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o flame-diff.svg
           test -s flame-diff.svg || { echo "::error::未生成差异 SVG"; exit 1; }
 
+      # 文本报告子命令也逐条跑一遍。
+      # README 里承诺的每条用法都必须在 CI 上真跑通 —— 否则一旦参数位置变了
+      # （例如把 --top 从顶层移进 hotspots），只会静默打印用法而无人察觉。
+      - name: 文本报告子命令
+        shell: bash
+        run: |
+          moon run cmd/main -- hotspots testdata/demo.folded --top 5
+          moon run cmd/main -- callers  testdata/demo.folded walk_tree
+          moon run cmd/main -- callees  testdata/demo.folded build_strings
+          moon run cmd/main -- delta    testdata/demo-baseline.folded testdata/demo.folded --top 5
+
+      # filter 的输出是折叠栈文本，必须能再喂回渲染器
+      - name: 过滤后仍可出图
+        shell: bash
+        run: |
+          moon run cmd/main -- filter build_strings testdata/demo.folded -o sub.folded
+          test -s sub.folded || { echo "::error::未生成过滤结果"; exit 1; }
+          moon run cmd/main -- sub.folded --out sub.svg
+          test -s sub.svg || { echo "::error::过滤结果无法出图"; exit 1; }
+
       - name: 上传产物
         uses: actions/upload-artifact@v4
         with:
@@ -158,4 +178,5 @@ jobs:
           path: |
             flame.svg
             flame-diff.svg
+            sub.svg
           retention-days: 7

@@ -53,7 +53,9 @@ try {
     Write-Host ""
     Write-Host "完成。生成 demo.folded（采样有随机性，每次行数与总耗时都会略有不同）。" -ForegroundColor Green
     Write-Host "渲染它：" -ForegroundColor Green
-    Write-Host "  moon run cmd/main -- demo/demo.folded --top 10 --out flame.svg" -ForegroundColor Green
+    Write-Host "  moon run cmd/main -- demo/demo.folded --out flame.svg" -ForegroundColor Green
+    Write-Host "看文本热点（注意 --top 属于 hotspots 子命令）：" -ForegroundColor Green
+    Write-Host "  moon run cmd/main -- hotspots demo/demo.folded --top 10" -ForegroundColor Green
 } finally {
     Pop-Location
 }
