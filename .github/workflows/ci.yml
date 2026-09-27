@@ -1,0 +1,139 @@
+name: CI
+
+# 覆盖检查、构建、测试、格式化与接口一致性。
+# 依据赛事 FAQ 推荐的 moonbit-community 基础 CI 规格编写：
+# 三平台 × 全后端，跑 `moon check --target all` 与 `moon test --target all`，
+# 外加 `moon fmt` 与 `moon info` 的一致性检查。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  root:
+    name: 根模块 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 MoonBit 工具链（macOS / Linux）
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: 安装 MoonBit 工具链（Windows）
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: 记录工具链版本
+        run: moon version --all
+
+      # --deny-warn：警告即失败。这条比默认检查严格，是工程质量的正向信号。
+      - name: 类型检查（全部后端，警告即失败）
+        run: moon check --target all --deny-warn
+
+      - name: 测试（全部后端，警告即失败）
+        run: moon test --target all --deny-warn
+
+      - name: 格式检查
+        run: moon fmt --check
+
+      # 只在 Linux 上比对接口，避免不同平台的换行符造成假失败
+      - name: 接口是否已更新
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          moon info
+          if ! git diff --quiet -- '*.mbti'; then
+            echo "::error::pkg.generated.mbti 与源码不一致。请在本地运行 'moon info' 并提交。"
+            git diff -- '*.mbti'
+            exit 1
+          fi
+
+  demo:
+    name: 演示负载模块 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    defaults:
+      run:
+        working-directory: demo
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 MoonBit 工具链（macOS / Linux）
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: 安装 MoonBit 工具链（Windows）
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+          "$env:USERPROFILE\.moon\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      # demo 是独立模块，根模块的检查覆盖不到它
+      - name: 类型检查
+        run: moon check --deny-warn
+
+      - name: 测试
+        run: moon test --deny-warn
+
+  # 渲染器本身必须能跑：用仓库自带的样例数据出一张图，并校验产物非空。
+  render:
+    name: 端到端出图
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 MoonBit 工具链
+        shell: bash
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+
+      - name: 用自带样例数据出图
+        shell: bash
+        run: |
+          moon run cmd/main -- testdata/demo.folded --top 5 --out flame.svg
+          test -s flame.svg || { echo "::error::未生成 SVG"; exit 1; }
+          grep -q '<g id="frames">' flame.svg || { echo "::error::SVG 结构异常"; exit 1; }
+
+      - name: 差异模式出图
+        shell: bash
+        run: |
+          moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o flame-diff.svg
+          test -s flame-diff.svg || { echo "::error::未生成差异 SVG"; exit 1; }
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: flame-graphs
+          path: |
+            flame.svg
+            flame-diff.svg
+          retention-days: 7

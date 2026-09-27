@@ -5,7 +5,7 @@
 test "bubble_sort 排序正确并统计交换次数" {
   let a = [3, 1, 2]
   let swaps = bubble_sort(a)
-  assert_eq(a, [1, 2, 3])
+  assert_true(a == [1, 2, 3])
   assert_eq(swaps, 2)
 }
 
@@ -13,14 +13,14 @@ test "bubble_sort 排序正确并统计交换次数" {
 test "bubble_sort 处理已有序数组（零交换）" {
   let a = [1, 2, 3, 4, 5]
   assert_eq(bubble_sort(a), 0)
-  assert_eq(a, [1, 2, 3, 4, 5])
+  assert_true(a == [1, 2, 3, 4, 5])
 }
 
 ///|
 test "insertion_sort 排序正确" {
   let a = [5, 2, 9, 1, 5, 6]
   let _ = insertion_sort(a)
-  assert_eq(a, [1, 2, 5, 5, 6, 9])
+  assert_true(a == [1, 2, 5, 5, 6, 9])
 }
 
 ///|
@@ -29,7 +29,7 @@ test "insertion_sort 处理空数组与单元素数组" {
   assert_eq(insertion_sort(empty), 0)
   let one = [42]
   assert_eq(insertion_sort(one), 0)
-  assert_eq(one, [42])
+  assert_true(one == [42])
 }
 
 ///|
