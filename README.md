@@ -115,11 +115,18 @@ ____moonbit__main;moonflame::demo::bench__sorting;bubble__sort;array::Array::at 
 
 ```powershell
 # 需要先安装 moon-pprof，见 docs/DATA-PIPELINE.md
-pwsh demo/reproduce.ps1
+powershell demo/reproduce.ps1     # PowerShell 7 用户可换成 pwsh
 ```
 
 脚本会：编译 `wasm-gc` → 用 `moon-pprof` 采样 → 转成折叠栈 → 输出热点概览。
-生成的 `demo.folded` 即可作为渲染器的输入。
+生成的 `demo/demo.folded` 即可作为渲染器的输入：
+
+```powershell
+moon run cmd/main -- demo/demo.folded --top 10 --out flame.svg
+```
+
+> 采样有随机性：同一份负载每次跑出来的栈数与总耗时都会略有不同（实测 61–70 栈 / 1.02–1.04 s），
+> 但热点排序稳定——这也是它需要归一化的原因之一。
 
 ---
 
