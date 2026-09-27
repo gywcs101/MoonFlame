@@ -1,5 +1,8 @@
 import {
   "gywcs101/moonflame",
+  "gywcs101/moonflame/cli",
+  "moonbitlang/core/env",
+  "moonbitlang/x/fs",
 }
 
 options(

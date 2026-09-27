@@ -12,9 +12,45 @@
 | --- | --- |
 | 数据链路（采样 → 折叠栈） | ✅ 已跑通并交叉验证 |
 | 演示负载与样例数据 | ✅ 已完成（`demo/` + `testdata/`） |
-| 渲染器主体（解析 / 聚合 / 布局 / SVG） | 🚧 开发中 |
+| 渲染器（解析 / 聚合 / 限深合并 / 布局 / SVG） | ✅ 可用 |
+| CLI（`render` 子命令） | ✅ 可用 |
+| 热点报告（`--top`） | ✅ 可用 |
+| 差异火焰图 | 🚧 开发中 |
 
-> 当前仓库已包含可复现的数据链路与真实样例数据；渲染器代码正在开发。使用示例将在渲染器落地后补充。
+---
+
+## 快速开始
+
+```bash
+moon run cmd/main -- testdata/demo.folded --out flame.svg
+```
+
+用浏览器打开 `flame.svg`，鼠标悬停即可看到每个帧的名字、耗时与占比。
+
+只看文本热点、不出图：
+
+```bash
+moon run cmd/main -- testdata/demo.folded --top 10
+```
+
+示例产物见 [`examples/flame.svg`](examples/flame.svg)。
+
+### 命令行参数
+
+| 参数 | 说明 |
+| --- | --- |
+| `<input>` | 折叠栈文件（位置参数，必填） |
+| `-o, --out <path>` | SVG 输出路径；不传则只打印报告 |
+| `--max-depth <n>` | 每个栈最多保留的帧数，**默认 32**，`0` 表示不限制 |
+| `--top <n>` | 打印前 N 个热点 |
+| `--width <px>` | 画布宽度，默认 1400 |
+| `--inverted` | 输出冰柱方向（根在顶部）；默认是火焰图方向（根在底部） |
+
+### 依赖说明
+
+**核心库零依赖**；仅命令行入口依赖官方包 [`moonbitlang/x`](https://github.com/moonbitlang/x)（Apache-2.0）做文件读写——`moonbitlang/core` 本身不含文件系统 API。
+
+> 另一官方并发运行时 `moonbitlang/async` 在 Windows 上要求 MSVC 工具链，MinGW 环境无法构建，因此选择了 `x`。
 
 ---
 

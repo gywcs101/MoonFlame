@@ -1,0 +1,32 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "gywcs101/moonflame/cli"
+
+import {
+  "moonbitlang/core/argparse",
+}
+
+// Values
+pub const DEFAULT_MAX_DEPTH : Int = 32
+
+pub const DEFAULT_WIDTH : Double = 1400.0
+
+pub fn command() -> @argparse.Command
+
+pub fn parse_config(ArrayView[String]) -> Config raise
+
+// Errors
+
+// Types and methods
+pub struct Config {
+  input : String
+  out : String?
+  max_depth : Int
+  top : Int?
+  width : Double
+  inverted : Bool
+} derive(Eq)
+
+// Type aliases
+
+// Traits
+
