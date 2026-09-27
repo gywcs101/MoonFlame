@@ -2,6 +2,8 @@
 package "gywcs101/moonflame"
 
 // Values
+pub fn aggregate(Array[Sample]) -> CallTree
+
 pub fn parse_folded(String) -> ParseResult
 
 pub fn parse_line(StringView) -> Sample?
@@ -11,6 +13,20 @@ pub fn version() -> String
 // Errors
 
 // Types and methods
+pub struct CallTree {
+  roots : Array[Node]
+  total : Double
+} derive(Eq)
+
+pub struct Node {
+  name : String
+  value : Double
+  children : Array[Node]
+} derive(Eq)
+pub fn Node::child(Self, String) -> Self?
+pub fn Node::self_ratio(Self, Double) -> Double
+pub fn Node::self_time(Self) -> Double
+
 pub struct ParseResult {
   samples : Array[Sample]
   skipped_lines : Int
