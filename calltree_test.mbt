@@ -106,20 +106,20 @@ test "handles empty input" {
 
 ///|
 test "aggregates real lines from testdata/demo.folded" {
-  let text = "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul 3009200\n" +
-    "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul;array::Array::at 5707200\n" +
-    "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::bench__sorting;moonflame::demo::bubble__sort 35055400\n"
+  let text = "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul 4625100\n" +
+    "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul;array::Array::at 6288400\n" +
+    "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::bench__sorting;moonflame::demo::bubble__sort 49686800\n"
   let t = tree_of(text, 0)
-  assert_eq(t.total, 43771800.0)
+  assert_eq(t.total, 60600300.0)
   assert_eq(t.roots.length(), 1)
   let root = t.roots[0]
   assert_eq(root.name, "____moonbit__main")
-  assert_eq(root.value, 43771800.0)
+  assert_eq(root.value, 60600300.0)
   // 未还原的 mangled 名照样参与合并
   guard root.child("moonflame4demo13run__workload") is Some(workload) else {
     fail("missing workload")
   }
-  assert_eq(workload.value, 43771800.0)
+  assert_eq(workload.value, 60600300.0)
   // bench__sorting 更宽，排在 matmul 前面
   let names = workload.children.map(fn(c) { c.name }).join(",")
   assert_eq(names, "moonflame::demo::bench__sorting,moonflame::demo::matmul")

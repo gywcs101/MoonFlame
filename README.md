@@ -141,8 +141,9 @@ powershell demo/reproduce.ps1     # PowerShell 7 用户可换成 pwsh
 脚本依次：编译 `wasm-gc` → 采样 3 轮 → 转成折叠栈 → 打印热点概览，产出 `demo/demo.folded`。
 它只是把这四条上游命令排好序，**不含任何测量或渲染逻辑**；删掉它不影响 MoonFlame 运行。
 
-> 采样有随机性：重跑会得到不同的栈数与总耗时（实测行数 32–34、总耗时 888–1040 ms），但**热点排序稳定**。
-> 另外，折叠栈里**一行 = 一个不同的调用栈**，重复出现的栈会被合并、权重累加——所以文件行数通常小于上游报告的样本数。
+> 采样有随机性：重跑会得到不同的栈数与总耗时（实测行数 32–36、总耗时 1887–1917 ms），但**热点排序稳定**。
+> 另外，折叠栈里**一行 = 一个不同的调用栈**，重复出现的栈会被合并、权重累加——所以文件只有 32 行，
+> 而上游报告的原始样本数是 486–494。
 
 ---
 
@@ -166,7 +167,7 @@ powershell demo/reproduce.ps1     # PowerShell 7 用户可换成 pwsh
 │   └── reproduce.ps1             一键复现脚本
 ├── examples/                     CLI 生成的示例图
 ├── testdata/
-│   ├── demo.folded               ⭐ 主样例：32 栈 / 深度 3–28 / 888ms
+│   ├── demo.folded               ⭐ 主样例：32 栈 / 深度 3–13 / 1893ms
 │   ├── demo-baseline.folded      构造的基线，用于演示差异模式
 │   ├── stress-recursive.folded   极限用例：79 栈 / 最深 7254 层
 │   └── official-sample.*         上游样例（Apache-2.0）

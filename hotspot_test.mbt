@@ -118,15 +118,15 @@ test "rounds a percentage up instead of truncating the fraction" {
 
 ///|
 test "ranks real lines from testdata/demo.folded" {
-  let text = "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul 3009200\n" +
-    "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul;array::Array::at 5707200\n" +
-    "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::bench__sorting;moonflame::demo::bubble__sort 35055400\n"
+  let text = "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul 4625100\n" +
+    "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul;array::Array::at 6288400\n" +
+    "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::bench__sorting;moonflame::demo::bubble__sort 49686800\n"
   let list = hotspots(text, 10)
   // 根帧与中间帧自身耗时为 0，被过滤；剩下三个才是真正的热点
   assert_eq(
     names(list),
     "moonflame::demo::bubble__sort,array::Array::at,moonflame::demo::matmul",
   )
-  assert_eq(list[0].self_time, 35055400.0)
-  assert_eq(list[0].ratio, 35055400.0 / 43771800.0)
+  assert_eq(list[0].self_time, 49686800.0)
+  assert_eq(list[0].ratio, 49686800.0 / 60600300.0)
 }

@@ -246,11 +246,16 @@ moon-pprof pprof2folded demo.pb.gz demo.folded
 | 指标 | 值 |
 | --- | --- |
 | 栈数 / 不同栈 | 32 / 32 |
-| 不同帧名 | 24 |
-| 栈深度 | **3 ~ 28**（中位 6） |
-| 总权重 | 888 ms |
+| 不同帧名 | 23 |
+| 栈深度 | **3 ~ 13**（中位 6） |
+| 总权重 | 1893 ms |
+| 上游原始样本数 | 490 |
 
-对比 `testdata/stress-recursive.folded` 的 7254 层——这份 demo 数据是"可读的形状"：3 层深的主干 + 清晰的并列分支 + `fib` 递归形成的窄深尖峰。
+对比 `testdata/stress-recursive.folded` 的 7254 层——这份 demo 数据是"可读的形状"：3 层深的主干 + 清晰的并列分支 + `walk_tree` 二叉展开形成的饱满树冠。
+
+> **第二轮改进（图形饱满度）**：首版的递归阶段用 `fib(32)`——它只占 **3.8%** 的时间，却把栈深拉到 28 层，
+> 于是 20 行近乎空白（逐行覆盖率仅 1.2–3.8%）。换成二叉展开的 `walk_tree` 并把它提到 **46%** 的时间占比后，
+> 逐行覆盖率 **22.7% → 67.4%**，最低行 **1.2% → 34.8%**。原理与实测见 `docs/DESIGN.md` §5b。
 
 ### 9.3 ⚠️ 重要发现：采样密度由「函数调用频率」决定，不是运行时长
 
@@ -294,7 +299,8 @@ moon-pprof pprof2folded demo.pb.gz demo.folded
 ### 9.5 对 demo 数据设计的影响
 
 - demo 负载要**保证每个阶段 ≥100ms**（本次为 100–450ms，满足）；
-- **适当增加函数调用层次**可提高分辨率，但要避免深递归（本次 `fib(32)` 约 29 层，安全）；
+- **适当增加函数调用层次**可提高分辨率，但要避免深递归——深递归会把画布撑高却只填满很窄一条
+  （首版 `fib(32)` 深 28 层、只占 3.8% 时间，即为此类反例）。现用二叉展开的 `walk_tree`，深度 9、约占 46% 时间；
 - 数据来源与复现方式必须写进 README：**"由 `demo/` 目录下的程序真实采样得到，可按 `demo/reproduce.ps1` 一键复现"**——这直接对应验收要求的"可复现的演示说明"。
 
 ### 9.6 `testdata/demo.folded` 的来源与「冻结」
@@ -319,15 +325,15 @@ demo/demo.mbt ──moon build --target wasm-gc──▶ demo/_build/.../main.wa
 | | 提交的 `testdata/demo.folded` | 重跑一次得到的 |
 | --- | --- | --- |
 | 栈数 | 32 | 34 |
-| 栈深度 | 3 – 28 | 3 – 27 |
-| 总权重 | 888 ms | 897.9 ms |
-| `pprof2folded` 报告的原始样本数 | — | 61 |
+| 栈深度 | 3 – 13 | 3 – 13 |
+| 总权重 | 1893 ms | 1913 ms |
+| `pprof2folded` 报告的原始样本数 | 490 | 494 |
 
-热点**排序**在各次之间是稳定的（`build__strings` 始终第一），但绝对数值与栈数会浮动。
+热点**排序**在各次之间是稳定的（`walk__tree` 始终第一，约占 46%），但绝对数值与栈数会浮动。
 因此任何**硬编码总耗时或栈数**的断言都不应针对现采数据，只能针对冻结的这份。
 
 **注意**：测试**不读取**这些文件。`folded_realdata_test.mbt` / `calltree_test.mbt` / `hotspot_test.mbt`
-只是把文件里的若干行**内嵌**为字面量（已核对，权重 `3009200` / `5707200` / `35055400` 均逐字命中），
+只是把文件里的若干行**内嵌**为字面量（已核对，权重 `4625100` / `6288400` / `49686800` / `410228000` 均逐字命中），
 因此 `testdata/` 是给人和评委看的资产，不是测试的运行时依赖。
 
 ---
@@ -339,8 +345,10 @@ demo/demo.mbt ──moon build --target wasm-gc──▶ demo/_build/.../main.wa
 | `demo/` | 演示负载的 MoonBit 源码（4 个阶段），可直接复现数据 |
 | `demo/reproduce.ps1` | 一键复现脚本：编译 → 采样 → 转折叠栈 |
 | `testdata/demo.wasm` / `demo.pb.gz` | 自建 demo 的 wasm-gc 二进制与采样结果 |
-| **`testdata/demo.folded`** | ⭐ **主 demo 数据**：32 栈 / 深度 3–28 / 888 ms。
+| **`testdata/demo.folded`** | ⭐ **主 demo 数据**：32 栈 / 深度 3–13 / 1893 ms。
+| `testdata/demo-baseline.folded` | 由上一行**构造**出的「优化前」基线，供差异模式演示（规则见 `tools/make-baseline.js`） |
 | `testdata/official-sample.wasm` / `.pb.gz` | moon-pprof 官方样例（Apache-2.0），保留来源 |
 | **`testdata/stress-recursive.folded`** | ⭐ **极限用例**：79 栈 / 最深 7254 层 / 5.5 MB，用于测试限深与合并 |
 | `tools/analyze_folded.js` | 折叠栈分析脚本（深度分布、Top-N、帧名统计） |
+| `tools/make-baseline.js` | 构造差异模式基线的确定性脚本（bubble ×3 / build_strings ×0.8） |
 | `tools/check_topic.js` | 选题撞车自查工具 |

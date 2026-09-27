@@ -38,9 +38,11 @@ test "matmul 结果可复现" {
 }
 
 ///|
-test "fib 基准值正确" {
-  assert_eq(fib(0), 0)
-  assert_eq(fib(1), 1)
-  assert_eq(fib(10), 55)
-  assert_eq(fib(20), 6765)
+test "walk_tree 结果确定，且在叶子处停止展开" {
+  assert_eq(walk_tree(3, 5), walk_tree(3, 5))
+  // 深度 <= 0 一律按叶子处理，不会无限递归
+  assert_eq(walk_tree(0, 7), walk_tree(0, 7))
+  assert_eq(walk_tree(-5, 7), walk_tree(0, 7))
+  // 展开一层必然比叶子大：多出两个子树的贡献
+  assert_true(walk_tree(1, 7) > walk_tree(0, 7))
 }

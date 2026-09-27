@@ -40,15 +40,36 @@ test "does not apply the placeholder to ugly but non-empty names" {
 
 ///|
 test "parses real lines from testdata/demo.folded" {
-  let text = "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul 3009200\n" +
-    "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul;array::Array::at 5707200\n" +
-    "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::bench__sorting;moonflame::demo::bubble__sort 35055400\n"
+  let text = "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul 4625100\n" +
+    "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul;array::Array::at 6288400\n" +
+    "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::bench__sorting;moonflame::demo::bubble__sort 49686800\n"
   let result = @moonflame.parse_folded(text)
   assert_eq(result.samples.length(), 3)
   assert_eq(result.skipped_lines, 0)
   assert_eq(result.samples[2].frames.length(), 4)
   assert_eq(result.samples[2].frames[3], "moonflame::demo::bubble__sort")
-  assert_eq(result.samples[2].weight, 35055400.0)
+  assert_eq(result.samples[2].weight, 49686800.0)
+}
+
+///|
+test "parses a real deep branching-recursion stack" {
+  // testdata/demo.folded 中最深的一行：`walk_tree` 分支展开 9 层，
+  // 连同 main / run_workload / bench_recursion 共 13 帧。
+  //
+  // 这条栈**又宽又深**（约占全图 46% 的时间），与旧负载里那条又窄又深的
+  // `fib` 尖刺正相反——同深度的所有节点宽度之和恒等于父节点，因此每一行
+  // 都被填满，不会留下大面积的空白。这是「图形饱满」在数据层面的根据。
+  let text = "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::bench__recursion;" +
+    "moonflame::demo::walk__tree;moonflame::demo::walk__tree;moonflame::demo::walk__tree;" +
+    "moonflame::demo::walk__tree;moonflame::demo::walk__tree;moonflame::demo::walk__tree;" +
+    "moonflame::demo::walk__tree;moonflame::demo::walk__tree;moonflame::demo::walk__tree;" +
+    "moonflame::demo::walk__tree 410228000"
+  let result = @moonflame.parse_folded(text)
+  assert_eq(result.samples.length(), 1)
+  assert_eq(result.skipped_lines, 0)
+  assert_eq(result.samples[0].frames.length(), 13)
+  assert_eq(result.samples[0].frames[2], "moonflame::demo::bench__recursion")
+  assert_eq(result.samples[0].weight, 410228000.0)
 }
 
 ///|
@@ -70,11 +91,11 @@ test "parses the deepest and longest line shape found in the real data" {
 
 ///|
 test "keeps large nanosecond weights exact" {
-  // 上游的权重是**纳秒时间**而非采样计数，数值可达 10^8 量级，
-  // 解析时不能被截断成整数计数。
+  // 上游的权重是**纳秒时间**而非采样计数，单个样本可达 10^8 量级
+  // （testdata/demo.folded 最深的一行即 410228000），解析时不能被截断成整数计数。
   let sample = @moonflame.parse_line(
-    "____moonbit__main;mizchi::bench::ackermann 887997400",
+    "____moonbit__main;mizchi::bench::ackermann 1893180600",
   )
   guard sample is Some(s) else { fail("expected a sample") }
-  assert_eq(s.weight, 887997400.0)
+  assert_eq(s.weight, 1893180600.0)
 }
