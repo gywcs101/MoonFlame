@@ -6,7 +6,7 @@
 
 ///|
 fn hotspots(text : String, top : Int) -> Array[@moonflame.Hotspot] {
-  let tree = @moonflame.aggregate(@moonflame.parse_folded(text).samples)
+  let tree = tree_of(text, 0)
   @moonflame.top_hotspots(tree, top)
 }
 

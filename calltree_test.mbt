@@ -5,13 +5,8 @@
 /// （`Map` 顺序不稳，是最容易让输出抖动的坑）。
 
 ///|
-fn build(text : String) -> @moonflame.CallTree {
-  @moonflame.aggregate(@moonflame.parse_folded(text).samples)
-}
-
-///|
 test "aggregates a single sample" {
-  let t = build("main;compute;fft 100")
+  let t = tree_of("main;compute;fft 100", 0)
   assert_eq(t.roots.length(), 1)
   assert_eq(t.total, 100.0)
   assert_eq(t.roots[0].name, "main")
@@ -20,8 +15,8 @@ test "aggregates a single sample" {
 
 ///|
 test "merges nodes sharing the same parent and name" {
-  let t = build(
-    "main;compute;fft 100\nmain;compute;fft 50\nmain;compute;parse 30",
+  let t = tree_of(
+    "main;compute;fft 100\nmain;compute;fft 50\nmain;compute;parse 30", 0,
   )
   assert_eq(t.total, 180.0)
   let main = t.roots[0]
@@ -38,7 +33,7 @@ test "merges nodes sharing the same parent and name" {
 ///|
 test "keeps same-named frames under different parents separate" {
   // 同名但父节点不同，属于不同调用路径，不能合并
-  let t = build("main;a;x 10\nmain;b;x 20")
+  let t = tree_of("main;a;x 10\nmain;b;x 20", 0)
   let main = t.roots[0]
   assert_eq(main.value, 30.0)
   guard main.child("a") is Some(a) else { fail("missing a") }
@@ -53,21 +48,21 @@ test "keeps same-named frames under different parents separate" {
 
 ///|
 test "sorts children by value descending" {
-  let t = build("main;small 10\nmain;big 100\nmain;mid 50")
+  let t = tree_of("main;small 10\nmain;big 100\nmain;mid 50", 0)
   let names = t.roots[0].children.map(fn(c) { c.name }).join(",")
   assert_eq(names, "big,mid,small")
 }
 
 ///|
 test "breaks value ties by name for determinism" {
-  let t = build("main;b 50\nmain;a 50")
+  let t = tree_of("main;b 50\nmain;a 50", 0)
   let names = t.roots[0].children.map(fn(c) { c.name }).join(",")
   assert_eq(names, "a,b")
 }
 
 ///|
 test "sorts roots when several exist" {
-  let t = build("alpha;x 10\nbeta;y 20")
+  let t = tree_of("alpha;x 10\nbeta;y 20", 0)
   assert_eq(t.roots.length(), 2)
   assert_eq(t.total, 30.0)
   let names = t.roots.map(fn(r) { r.name }).join(",")
@@ -77,13 +72,13 @@ test "sorts roots when several exist" {
 ///|
 test "produces an identical tree for identical input" {
   let text = "main;b;z 30\nmain;a 10\nmain;b;y 20\nother 5"
-  assert_true(build(text) == build(text))
+  assert_true(tree_of(text, 0) == tree_of(text, 0))
 }
 
 ///|
 test "computes self time as value minus children" {
   // compute 的 100 权重没有更深的帧，属于它自己消耗的时间
-  let t = build("main;compute;fft 900\nmain;compute 100")
+  let t = tree_of("main;compute;fft 900\nmain;compute 100", 0)
   let main = t.roots[0]
   guard main.child("compute") is Some(compute) else { fail("missing compute") }
   assert_eq(compute.value, 1000.0)
@@ -96,7 +91,7 @@ test "computes self time as value minus children" {
 
 ///|
 test "computes self ratio against the total" {
-  let t = build("main;compute;fft 900\nmain;compute 100")
+  let t = tree_of("main;compute;fft 900\nmain;compute 100", 0)
   let main = t.roots[0]
   guard main.child("compute") is Some(compute) else { fail("missing compute") }
   assert_eq(compute.self_ratio(t.total), 0.1)
@@ -104,7 +99,7 @@ test "computes self ratio against the total" {
 
 ///|
 test "handles empty input" {
-  let t = build("")
+  let t = tree_of("", 0)
   assert_eq(t.roots.length(), 0)
   assert_eq(t.total, 0.0)
 }
@@ -114,7 +109,7 @@ test "aggregates real lines from testdata/demo.folded" {
   let text = "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul 3009200\n" +
     "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::matmul;array::Array::at 5707200\n" +
     "____moonbit__main;moonflame4demo13run__workload;moonflame::demo::bench__sorting;moonflame::demo::bubble__sort 35055400\n"
-  let t = build(text)
+  let t = tree_of(text, 0)
   assert_eq(t.total, 43771800.0)
   assert_eq(t.roots.length(), 1)
   let root = t.roots[0]

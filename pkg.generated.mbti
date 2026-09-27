@@ -6,11 +6,15 @@ pub fn aggregate(Array[Sample], max_depth? : Int) -> CallTree
 
 pub fn deeper_placeholder() -> String
 
+pub fn layout(CallTree, Double, Double) -> Layout
+
 pub fn parse_folded(String) -> ParseResult
 
 pub fn parse_line(StringView) -> Sample?
 
 pub fn render_hotspots(Array[Hotspot], Double) -> String
+
+pub fn self_placeholder() -> String
 
 pub fn top_hotspots(CallTree, Int) -> Array[Hotspot]
 
@@ -31,6 +35,15 @@ pub struct Hotspot {
   occurrences : Int
 } derive(Eq)
 
+pub struct Layout {
+  rects : Array[Rect]
+  width : Double
+  max_depth : Int
+  total : Double
+} derive(Eq)
+pub fn Layout::height(Self, Double) -> Double
+pub fn Layout::row_count(Self) -> Int
+
 pub struct Node {
   name : String
   value : Double
@@ -43,6 +56,16 @@ pub fn Node::self_time(Self) -> Double
 pub struct ParseResult {
   samples : Array[Sample]
   skipped_lines : Int
+} derive(Eq)
+
+pub struct Rect {
+  x : Double
+  y : Double
+  width : Double
+  height : Double
+  name : String
+  value : Double
+  depth : Int
 } derive(Eq)
 
 pub struct Sample {

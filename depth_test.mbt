@@ -11,12 +11,6 @@
 ///      见 `attributes merged time to the placeholder` 与 `mixes capped and uncapped stacks`。
 
 ///|
-fn tree_of(text : String, max_depth : Int) -> @moonflame.CallTree {
-  let samples = @moonflame.parse_folded(text).samples
-  @moonflame.aggregate(samples, max_depth~)
-}
-
-///|
 /// 以该节点为根的子树的最大层数。
 fn depth_of(node : @moonflame.Node) -> Int {
   let mut deepest = 0
