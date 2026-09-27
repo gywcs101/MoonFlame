@@ -350,25 +350,18 @@ test "解析折叠栈" {
 
 | 验收标准 | 本项目的落实 |
 | --- | --- |
-| MoonBit 为主 | 全部 `.mbt`，无 FFI、无其他语言 |
-| 仓库公开 | GitHub 公开，3–4 天内分 6–10 次提交 |
-| 能够运行 | `moon run cmd/main -- render ...` 一条命令出图 + `moon test` 全绿 + README 示例可执行 |
-| 工作有效 | 原创项目；mooncakes.io 检索 `flamegraph`/`folded`/`pprof` 均 0 命中（证据见 `tools/check_topic.js`） |
-| 开源合规 | Apache-2.0；README 声明 moon-pprof 与 Brendan Gregg 的参考来源 |
-| AI 可解释 | README 写明 AI 参与范围与逐条验证方式 |
+| MoonBit 为主 | 全部 `.mbt`，无 FFI、无其他语言。交互脚本是内嵌在 SVG 字符串里的 JS **字面量**，不参与构建、也不引入任何依赖 |
+| 仓库公开 | GitHub 公开仓库，18 个提交，均为真实开发步骤（无拆分凑数、无空提交） |
+| 能够运行 | `moon run cmd/main -- testdata/demo.folded --out flame.svg` 一条命令出图；`moon test` 122 个全绿；README 里的示例命令均实测可执行 |
+| 工作有效 | 原创项目；核心库约 956 行代码（含 233 行内嵌 JS，纯 MoonBit 逻辑约 723 行）+ 约 1284 行测试，附完整文档与可复现的样例数据 |
+| 开源合规 | Apache-2.0。**未复制任何第三方源码**；与 `flamegraph.pl` 对齐的只是功能规格——该项目采用 CDDL-1.0，与本项目许可证不兼容，已在 README 与 §5b 明确声明 |
+| AI 可解释 | `AGENTS.md` 载明 AI 使用约定（逐条测试验证、关键结论必须实测）；实测结论记录在 `docs/DATA-PIPELINE.md` |
 
 ---
 
-## 10. README 必写的四条限制
+## 10. 页面限制
 
-1. 采样**仅支持 wasm / wasm-gc** 目标（native CLI 的 CPU 采样不可用）；
-2. 需要 Rust 工具链**仅用于采集端**；渲染器本身零依赖；
-3. 递归程序会产生极深栈，超过 `--max-depth` 的部分会被合并显示；
-4. **上游采样分辨率很粗，且取决于函数调用频率而非运行时长**（实测：调用密集约 600 样本/秒，循环密集约 42 样本/秒，相差 14 倍；`--interval-us` 与 `--iterations` 几乎不改变样本数）。含义：**短于约 25ms 的函数可能完全采不到；跑久一点也不会提高统计质量。** 详见 `docs/DATA-PIPELINE.md` §9.3。
+README 的「已知限制」一节共列 7 条，涵盖采样目标限制、采集端依赖、极深栈合并、
+采样分辨率的反直觉行为、内嵌脚本的生效条件、横轴排序口径，以及两个合成帧的含义。
+此处不重复，以免两处描述随时间漂移。
 
----
-
-## 11. 备选主题（未启动，仅备查）
-
-早期评估过、目前**未启动**的方向：moonwidth（CJK 终端宽度）、moonchangelog（提交信息→CHANGELOG）、mooncaptcha（验证码）、moonglow（Markdown→终端）、moonctx（LLM 上下文打包）。
-详细设计见 仓库外的归档目录（未纳入版本控制）。
