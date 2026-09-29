@@ -20,6 +20,7 @@
 - [快速验证](#快速验证)
 - [完整流程](#完整流程)
 - [命令行](#命令行)
+- [作为库使用](#作为库使用)
 - [差异火焰图](#差异火焰图)
 - [已知限制](#已知限制)
 - [目录结构](#目录结构)
@@ -118,6 +119,8 @@ moon run cmd/main -- hotspots testdata/demo.folded --top 10
 | --- | --- |
 | `testdata/demo.folded` | ⭐ 主样例：32 栈 / 深度 3–13 / 1893 ms |
 | `testdata/stress-recursive.folded` | 极限用例：79 栈 / 最深 **7254 层** / 5.5 MB，用来验证限深与合并 |
+
+不想走命令行、想在 MoonBit 代码里直接调用，见[作为库使用](#作为库使用)。
 
 ## 完整流程
 
@@ -251,6 +254,47 @@ moon run cmd/main -- sub.folded --out sub.svg
 | `Ctrl-I` / `ic` | 切换搜索是否区分大小写 |
 
 配色沿用经典火焰图的**暖色调色板**（深红 → 橙 → 黄的单维渐变），同名帧同色，便于跨图追踪同一个函数。
+
+## 作为库使用
+
+本项目发布在 [mooncakes.io](https://mooncakes.io/docs/gywcs101/moonflame)。除了命令行，
+也可以直接在自己的 MoonBit 项目里调用——核心链路全是**纯函数**：不碰文件、时间与随机，
+输入输出都是值，拿到 SVG 字符串后怎么落盘由调用方决定。
+
+```moonbit
+import {
+  "gywcs101/moonflame" @moonflame,
+}
+
+///|
+/// 折叠栈文本 → 可交互 SVG。
+fn folded_to_svg(folded : String) -> String {
+  let parsed = @moonflame.parse_folded(folded) // ① 解析折叠栈
+  let tree = @moonflame.aggregate(parsed.samples, max_depth=32) // ② 聚合成调用树
+  let layout = @moonflame.layout(tree, 1400.0, 16.0) // ③ 计算矩形布局
+  @moonflame.render_svg(layout) // ④ 渲染成 SVG 文本
+}
+```
+
+上面这段是从「外部使用者」视角写的黑盒用例，已实测可编译并产出含 `<g id="frames">` 的完整 SVG。
+
+几个常用入口：
+
+| 目的 | 函数 |
+| --- | --- |
+| 解析 | `parse_folded(text)` → `ParseResult`（`.samples` / `.skipped_lines`） |
+| 聚合 | `aggregate(samples, max_depth=32)` → `CallTree`（`.roots` / `.total`） |
+| 布局 | `layout(tree, width, row_height, inverted=false)` → `Layout`（`.rects` / `.height()`） |
+| 渲染 | `render_svg(layout, unit=..., normalize_names=...)` → `String` |
+| 热点 | `top_hotspots(tree, 10)` → `Array[Hotspot]`，`render_hotspots(...)` 直接出文本 |
+| 调用关系 | `find_callers(tree, name)` / `find_callees(tree, name)` → `Array[Relation]` |
+| 差异 | `diff_against(before, after)` + `render_svg`，或 `compute_delta(...)` + `render_delta(...)` |
+| 过滤 | `filter_folded(pattern, text)` → 过滤后的折叠栈文本 |
+
+`WeightUnit::parse("ms")` 可以把命令行里那种单位字符串转成 `WeightUnit`；
+`normalize_name` 单独可用来还原上游未还原的符号名。
+
+完整的 64 个公开 API 见 mooncakes 的文档页，或仓库根目录的 `pkg.generated.mbti`。
 
 ## 差异火焰图
 
