@@ -16,6 +16,7 @@
 
 - [这是什么](#这是什么)
 - [主要功能](#主要功能)
+- [环境要求](#环境要求)
 - [快速验证](#快速验证)
 - [完整流程](#完整流程)
 - [命令行](#命令行)
@@ -66,6 +67,37 @@ MoonFlame 补的是「**单文件、零环境、可归档**」这一空缺。
 其源码采用 CDDL-1.0（文件级弱 copyleft，不是宽松许可），为避免任何许可证混用问题，
 其源码一行未复制。详见 [参考与许可](#参考与许可)。
 
+## 环境要求
+
+| 项 | 要求 | 说明 |
+| --- | --- | --- |
+| MoonBit 工具链 | **`moonc` ≥ 0.10.14** | ⚠️ **硬要求**。低于此版本会因 `implicit_impl_as_method` 报错而**无法编译** |
+| 操作系统 | Windows / macOS / Linux | CI 在三平台 × 四后端上验证 |
+| 采样器 | 不需要 | 只有「分析你自己的程序」时才需要 `moon-pprof`，见[完整流程](#完整流程) |
+
+安装工具链：
+
+```bash
+# macOS / Linux
+curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+
+# Windows（PowerShell）
+irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
+```
+
+装好后**先确认版本，再更新一次包注册表索引**：
+
+```bash
+moon version --all   # 确认 moonc >= 0.10.14
+moon update          # 更新包注册表索引
+```
+
+> `moon update` 不能省。全新安装的环境里注册表索引是空的，直接构建会报
+> `Failed to resolve registry dependency ...: module was not found in the registry`。
+
+依赖（官方包 `moonbitlang/x`）由 `moon` 在首次构建时自动拉取，无需手动安装。
+`moon.mod` 目前不支持声明所需的编译器版本，所以这条要求写在 README 里，并由 CI 校验。
+
 ## 快速验证
 
 **只想看看效果的话，不需要安装任何采样工具**——仓库里已带一份真实采样数据：
@@ -89,7 +121,11 @@ moon run cmd/main -- hotspots testdata/demo.folded --top 10
 
 ## 完整流程
 
-想拿它分析**自己的程序**，走这条四步链路。以 MoonBit 程序为例：
+想拿它分析**自己的程序**，走这条五步链路。以 MoonBit 程序为例：
+
+**⓪ 装好 MoonBit 工具链**
+
+见[环境要求](#环境要求)。本步只需做一次，且**别忘了 `moon update`**。
 
 **① 安装采样器**（仅采集端需要，渲染器不需要）
 
@@ -116,11 +152,17 @@ moon-pprof pprof2folded app.pb.gz app.folded
 moon run cmd/main -- app.folded --out flame.svg
 ```
 
-`demo/` 目录里有一个可直接照抄的完整例子（四点负载 + 一键脚本）：
+`demo/` 目录里有一个可直接照抄的完整例子（四点负载 + 一键脚本），两个平台各一份：
 
 ```powershell
-powershell demo/reproduce.ps1     # 编译 → 采样 → 转折叠栈 → 打印热点
+powershell demo/reproduce.ps1     # Windows
 ```
+
+```bash
+bash demo/reproduce.sh            # macOS / Linux
+```
+
+两个脚本等价：编译 → 采样 → 转折叠栈 → 打印热点。
 
 > 采样有随机性：重跑会得到不同的栈数与总耗时（实测行数 32–36、总耗时 1887–1917 ms），但**热点排序稳定**。
 > 折叠栈里**一行 = 一个不同的调用栈**，重复出现的栈会被合并、权重累加，所以文件 32 行而原始样本有 490 个。
@@ -268,7 +310,8 @@ moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o 
 ├── .github/workflows/ci.yml      持续集成（三平台 × 四后端 + 端到端出图）
 ├── demo/                         演示负载（独立模块）
 │   ├── demo.mbt                  四点负载：排序 / 字符串 / 矩阵 / 递归
-│   └── reproduce.ps1             一键复现：编译 → 采样 → 转折叠栈
+│   ├── reproduce.ps1             一键复现（Windows）
+│   └── reproduce.sh              一键复现（macOS / Linux）
 ├── examples/                     示例图（SVG 可交互，PNG 供 README 展示）
 └── testdata/                     冻结的样例数据（主样例 + 极限用例 + 上游样例）
 ```
@@ -279,9 +322,10 @@ moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o 
 ## 开发
 
 ```bash
-moon check              # 类型检查
-moon test               # 全部测试（122 个）
-moon info && moon fmt   # 提交前更新接口并格式化
+moon check --target all --deny-warn   # 类型检查（四后端，警告即失败）
+moon build --target all --deny-warn   # 构建（四后端）
+moon test  --target all --deny-warn   # 全部测试（166 个 × 四后端）
+moon info && moon fmt                 # 提交前更新接口并格式化
 moon run cmd/main -- --help
 ```
 
