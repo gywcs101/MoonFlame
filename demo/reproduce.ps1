@@ -1,10 +1,12 @@
 #!/usr/bin/env pwsh
 # 复现 demo 样例数据的完整流程：编译 wasm-gc → 采样 → 转折叠栈 → 热点概览
 #
-# 前置：moon-pprof 已安装（见 docs/DATA-PIPELINE.md）
+# 前置：moon-pprof 已安装（见其仓库说明）
 # 用法（Windows PowerShell 5.1 与 PowerShell 7 都可以）：
 #   powershell demo/reproduce.ps1
 #   pwsh       demo/reproduce.ps1
+#
+# macOS / Linux 请用等价脚本：bash demo/reproduce.sh
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -30,7 +32,7 @@ $tcBin = Join-Path $root '_toolchain\cargo\bin'
 if (Test-Path $tcBin) { $env:PATH = "$tcBin;E:\mingw64\bin;$env:PATH" }
 
 if (-not (Get-Command moon-pprof -ErrorAction SilentlyContinue)) {
-    Write-Error "找不到 moon-pprof。请先按 docs/DATA-PIPELINE.md 安装，或把它放到 PATH 上。"
+    Write-Error "找不到 moon-pprof。请先安装，或把它放到 PATH 上（安装方式见其仓库说明）。"
 }
 
 Push-Location $PSScriptRoot
