@@ -3,7 +3,7 @@
 
 name = "gywcs101/moonflame"
 
-version = "0.1.0"
+version = "0.1.1"
 
 import {
   // 仅命令行入口使用；核心库本身不依赖任何外部包。

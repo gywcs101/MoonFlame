@@ -243,7 +243,7 @@ pub fn command() -> @argparse.Command {
   @argparse.Command(
     "moonflame",
     about="Render folded stack profiles into interactive SVG flame graphs",
-    version="0.1.0",
+    version="0.1.1",
     options=render_options(),
     flags=[inverted_flag()],
     positionals=[

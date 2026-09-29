@@ -13,6 +13,12 @@
 
 ///|
 /// 返回当前版本号，与 `moon.mod` 中的 `version` 保持一致。
+///
+/// ⚠️ 改版本号时有三处必须一起改，否则会出现「库里报 A、命令行报 B」：
+///   1. `moon.mod` 的 `version`
+///   2. 本函数的返回值
+///   3. `cli/cli.mbt` 里传给命令行解析器的 `version=`
+/// `moonflame_test.mbt` 会断言本函数的返回值，漏改会直接测试失败。
 pub fn version() -> String {
-  "0.1.0"
+  "0.1.1"
 }

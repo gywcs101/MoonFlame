@@ -3,5 +3,5 @@
 
 ///|
 test "version is exposed" {
-  assert_eq(@moonflame.version(), "0.1.0")
+  assert_eq(@moonflame.version(), "0.1.1")
 }
