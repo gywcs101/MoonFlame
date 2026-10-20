@@ -15,6 +15,11 @@ on:
 permissions:
   contents: read
 
+# 本地验收与发布验证使用的确定性工具链版本。不要使用 latest，
+# 否则格式化输出和 CLI 主机行为变化会让同一提交在 CI 中漂移。
+env:
+  MOONBIT_INSTALL_VERSION: 0.1.20260920
+
 jobs:
   root:
     name: 根模块 / ${{ matrix.os }}
