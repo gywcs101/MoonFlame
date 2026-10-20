@@ -1,7 +1,7 @@
 """Compile the README API example in a separate module before registry publication."""
-import json
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
 
@@ -9,14 +9,28 @@ ROOT = Path(__file__).resolve().parents[1]
 readme = (ROOT / 'README.md').read_text(encoding='utf-8')
 source = re.search(r'```moonbit\n(.*?)```', readme, re.S).group(1)
 with tempfile.TemporaryDirectory(prefix='moonflame-consumer-') as directory:
-    consumer = Path(directory)
-    # This toolchain's modern manifest delegates local overrides to workspaces.
-    # Its compatibility manifest supports a local dependency directly; use it
-    # only inside this temporary prepublication consumer, never in the library.
-    manifest = {'name': 'moonflame-tests/consumer', 'version': '0.0.0',
-                'deps': {'gywcs101/moonflame': {'path': str(ROOT)}},
-                'preferred-target': 'native'}
-    (consumer / 'moon.mod.json').write_text(json.dumps(manifest), encoding='utf-8')
+    workspace = Path(directory)
+    consumer = workspace / 'consumer'
+    local_module = workspace / 'moonflame'
+    consumer.mkdir()
+    # Modern Moon resolves local modules through moon.work. Copy the module
+    # into the temporary workspace so this test remains independent of the
+    # checkout path and works with current and future MoonBit toolchains.
+    shutil.copytree(
+        ROOT,
+        local_module,
+        ignore=shutil.ignore_patterns('.git', '_build', '_toolchain', 'node_modules'),
+    )
+    (workspace / 'moon.work').write_text(
+        'members = ["consumer", "moonflame"]\n', encoding='utf-8'
+    )
+    (consumer / 'moon.mod').write_text(
+        'name = "moonflame-tests/consumer"\n'
+        'version = "0.0.0"\n'
+        'preferred_target = "native"\n'
+        'import { "gywcs101/moonflame@0.2.0" }\n',
+        encoding='utf-8',
+    )
     (consumer / 'moon.pkg').write_text('import { "gywcs101/moonflame", }\n', encoding='utf-8')
     (consumer / 'consumer.mbt').write_text(source, encoding='utf-8')
     (consumer / 'consumer_test.mbt').write_text('''///|
