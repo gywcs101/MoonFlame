@@ -5,7 +5,7 @@
 fn relations_of_text(
   text : String,
   wanted : String,
-) -> Array[@moonflame.Relation] {
+) -> Array[@moonflame.Relation] raise {
   @moonflame.find_callers(tree_of(text, 0), wanted)
 }
 

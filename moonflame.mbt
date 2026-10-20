@@ -20,5 +20,5 @@
 ///   3. `cli/cli.mbt` 里传给命令行解析器的 `version=`
 /// `moonflame_test.mbt` 会断言本函数的返回值，漏改会直接测试失败。
 pub fn version() -> String {
-  "0.1.1"
+  "0.2.0"
 }

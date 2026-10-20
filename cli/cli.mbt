@@ -22,7 +22,7 @@ pub(all) enum Action {
   Callees(String)
   /// 两份剖面的差异文本排行
   Delta(Int)
-  /// 按正则过滤栈，输出折叠栈文本
+  /// 按归一化子串过滤栈，输出折叠栈文本
   Filter(String)
 } derive(Eq)
 
@@ -220,7 +220,7 @@ fn subcommands() -> Array[@argparse.Command] {
     @argparse.Command(
       "filter",
       about="Keep only the stacks containing a substring",
-      options=[max_depth_option(), out_option()],
+      options=[out_option()],
       positionals=[
         @argparse.PositionArg(
           "pattern",
@@ -243,7 +243,7 @@ pub fn command() -> @argparse.Command {
   @argparse.Command(
     "moonflame",
     about="Render folded stack profiles into interactive SVG flame graphs",
-    version="0.1.1",
+    version="0.2.0",
     options=render_options(),
     flags=[inverted_flag()],
     positionals=[
@@ -263,11 +263,18 @@ fn int_option(
   values : Map[String, Array[String]],
   key : String,
   fallback : Int,
-) -> Int {
-  match values.get(key) {
-    Some([text, ..]) => @string.parse_int(text) catch { _ => fallback }
+) -> Int raise {
+  let value = match values.get(key) {
+    Some([text, ..]) =>
+      @string.parse_int(text) catch {
+        _ => fail("--" + key + " requires an integer")
+      }
     _ => fallback
   }
+  if value < 0 {
+    fail("--" + key + " must be nonnegative")
+  }
+  value
 }
 
 ///|
@@ -275,11 +282,18 @@ fn double_option(
   values : Map[String, Array[String]],
   key : String,
   fallback : Double,
-) -> Double {
-  match values.get(key) {
-    Some([text, ..]) => @string.parse_double(text) catch { _ => fallback }
+) -> Double raise {
+  let value = match values.get(key) {
+    Some([text, ..]) =>
+      @string.parse_double(text) catch {
+        _ => fail("--" + key + " requires a number")
+      }
     _ => fallback
   }
+  if value.is_nan() || value.is_inf() || value <= 20.0 {
+    fail("--width must be finite and greater than 20")
+  }
+  value
 }
 
 ///|
@@ -291,15 +305,15 @@ fn text_option(values : Map[String, Array[String]], key : String) -> String? {
 }
 
 ///|
-/// 单位选项；无法识别的写法退回默认的纳秒。
+/// 单位选项；无法识别的写法报错。
 fn unit_option_value(
   values : Map[String, Array[String]],
-) -> @moonflame.WeightUnit {
+) -> @moonflame.WeightUnit raise {
   match text_option(values, "unit") {
     Some(text) =>
       match @moonflame.WeightUnit::parse(text) {
         Some(parsed) => parsed
-        None => @moonflame.Nanoseconds
+        None => fail("unknown weight unit: " + text)
       }
     None => @moonflame.Nanoseconds
   }

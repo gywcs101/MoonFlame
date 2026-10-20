@@ -33,7 +33,28 @@ pub extend Sample with Eq::{not_equal, equal}
 pub struct ParseResult {
   samples : Array[Sample]
   skipped_lines : Int
+  diagnostics : Array[ParseIssue]
 } derive(Eq)
+
+///|
+pub(all) enum ParseIssueKind {
+  MissingWeight
+  InvalidNumber
+  NonFiniteWeight
+  NegativeWeight
+} derive(Eq)
+
+///|
+pub extend ParseIssueKind with Eq::{not_equal, equal}
+
+///|
+pub struct ParseIssue {
+  line : Int
+  kind : ParseIssueKind
+} derive(Eq)
+
+///|
+pub extend ParseIssue with Eq::{not_equal, equal}
 
 ///|
 /// 显式声明 `Eq` 的方法可被当作常规方法调用。
@@ -42,7 +63,7 @@ pub struct ParseResult {
 pub extend ParseResult with Eq::{not_equal, equal}
 
 ///|
-/// 解析权重。无法解析或为非有限值（NaN / Inf）时返回 `None`——
+/// 解析权重。无法解析、负数或非有限值（NaN / Inf）时返回 `None`——
 /// 这类值会让后续布局的比例计算整体失效，必须在入口拦掉。
 fn parse_weight(view : StringView) -> Double? {
   let parsed : Result[Double, Error] = Ok(@string.parse_double(view)) catch {
@@ -50,7 +71,7 @@ fn parse_weight(view : StringView) -> Double? {
   }
   match parsed {
     Ok(value) =>
-      if value.is_nan() || value.is_inf() {
+      if value.is_nan() || value.is_inf() || value < 0.0 {
         None
       } else {
         Some(value)
@@ -89,11 +110,38 @@ pub fn parse_line(line : StringView) -> Sample? {
 pub fn parse_folded(text : String) -> ParseResult {
   let samples : Array[Sample] = []
   let mut skipped = 0
+  let diagnostics : Array[ParseIssue] = []
+  let mut line_number = 0
   for line in text.split("\n") {
+    line_number = line_number + 1
     match parse_line(line) {
       Some(sample) => samples.push(sample)
-      None => if !line.is_blank() { skipped = skipped + 1 }
+      None =>
+        if !line.is_blank() {
+          skipped = skipped + 1
+          let trimmed = line.trim()
+          let kind = match trimmed.rev_find(" ") {
+            None => MissingWeight
+            Some(sep) => {
+              let result : Result[Double, Error] = Ok(
+                @string.parse_double(trimmed.view(start_offset=sep + 1)),
+              ) catch {
+                error => Err(error)
+              }
+              match result {
+                Err(_) => InvalidNumber
+                Ok(value) =>
+                  if !finite(value) {
+                    NonFiniteWeight
+                  } else {
+                    NegativeWeight
+                  }
+              }
+            }
+          }
+          diagnostics.push({ line: line_number, kind, })
+        }
     }
   }
-  { samples, skipped_lines: skipped, }
+  { samples, skipped_lines: skipped, diagnostics, }
 }

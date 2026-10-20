@@ -3,6 +3,7 @@ import {
   "gywcs101/moonflame/cli",
   "moonbitlang/core/env",
   "moonbitlang/x/fs",
+  "moonbitlang/x/sys",
 }
 
 pkgtype(kind: "executable")

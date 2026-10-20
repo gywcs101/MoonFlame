@@ -37,16 +37,21 @@ priv struct Acc {
 ///|
 /// 深度优先遍历，按函数名累加自身耗时。
 fn collect(node : Node, acc : Map[String, Acc]) -> Unit {
-  let own = node.self_time()
-  match acc.get(node.name) {
-    Some(existing) => {
-      existing.self_time = existing.self_time + own
-      existing.occurrences = existing.occurrences + 1
+  let pending = [node]
+  while pending.length() > 0 {
+    let current = pending[pending.length() - 1]
+    ignore(pending.pop())
+    let own = current.self_time()
+    match acc.get(current.name) {
+      Some(existing) => {
+        existing.self_time = existing.self_time + own
+        existing.occurrences = existing.occurrences + 1
+      }
+      None => acc.set(current.name, { self_time: own, occurrences: 1, })
     }
-    None => acc.set(node.name, { self_time: own, occurrences: 1, })
-  }
-  for child in node.children {
-    collect(child, acc)
+    for child in current.children {
+      pending.push(child)
+    }
   }
 }
 
@@ -69,7 +74,11 @@ fn compare_hotspots(a : Hotspot, b : Hotspot) -> Int {
 /// （与 `moon-pprof summary` 的口径一致）。
 ///
 /// `top <= 0` 表示不截断，返回全部条目。
-pub fn top_hotspots(tree : CallTree, top : Int) -> Array[Hotspot] {
+pub fn top_hotspots(
+  tree : CallTree,
+  top : Int,
+) -> Array[Hotspot] raise ValidationError {
+  validate_tree(tree)
   let acc : Map[String, Acc] = Map([])
   for root in tree.roots {
     collect(root, acc)
@@ -105,10 +114,13 @@ pub fn top_hotspots(tree : CallTree, top : Int) -> Array[Hotspot] {
 /// 先放大成「千分比」再四舍五入，这样 99.97% 会正确进位成 100.0%，
 /// 而不会出现 99.10% 这类结果。
 fn format_percent(ratio : Double) -> String {
-  let scaled = (ratio * 1000.0 + 0.5).to_int()
-  let whole = scaled / 10
-  let frac = scaled % 10
-  "\{whole}.\{frac}%"
+  let magnitude = ratio.abs()
+  if !finite(magnitude) || magnitude >= 1.0e12 {
+    return (ratio * 100.0).to_string() + "%"
+  }
+  let scaled = (magnitude * 1000.0 + 0.5).to_int64()
+  let sign = if ratio < 0.0 && scaled != 0L { "-" } else { "" }
+  sign + (scaled / 10L).to_string() + "." + (scaled % 10L).to_string() + "%"
 }
 
 ///|

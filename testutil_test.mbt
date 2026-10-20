@@ -6,8 +6,8 @@
 ///|
 /// 从折叠栈文本构造调用树。
 ///
-/// `max_depth <= 0` 表示不限制深度。
-fn tree_of(text : String, max_depth : Int) -> @moonflame.CallTree {
+/// `max_depth = 0` 表示不限制深度。
+fn tree_of(text : String, max_depth : Int) -> @moonflame.CallTree raise {
   @moonflame.aggregate(@moonflame.parse_folded(text).samples, max_depth~)
 }
 

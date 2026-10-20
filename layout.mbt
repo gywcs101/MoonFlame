@@ -97,80 +97,62 @@ fn layout_node(
   row_height : Double,
   rects : Array[Rect],
 ) -> Unit {
-  let span = x1 - x0
-  rects.push({
-    x: x0,
-    y: depth.to_double() * row_height,
-    width: span,
-    height: row_height,
-    name: node.name,
-    value: node.value,
-    depth,
-    delta: node.delta,
-  })
-  if span <= 0.0 || node.value <= 0.0 {
-    return
-  }
-  // 子项 = 真实子节点 + 自身耗时合成项。
-  // 两者之和恒等于 node.value，因此下面的比例切分不会留下空洞。
-  //
-  // 只有在**存在子节点**时才补合成项：叶节点的整块宽度本来就是它自己的耗时，
-  // 再套一层 `(self)` 只会白白加深一层、徒增矩形。
-  let items : Array[Item] = []
-  for child in node.children {
-    items.push({ name: child.name, value: child.value, node: Some(child), })
-  }
-  let own = node.self_time()
-  if own > 0.0 && items.length() > 0 {
-    items.push({ name: self_placeholder(), value: own, node: None, })
-  }
-  // 自身耗时的变化量 = 本节点的变化量 − 子节点变化量之和。
-  // 任一子节点没有变化量（非差异模式）时，合成项也不带变化量。
-  let self_delta = match node.delta {
-    Some(total) => {
-      let mut sum = 0.0
-      let mut complete = true
-      for child in node.children {
-        match child.delta {
-          Some(value) => sum = sum + value
-          None => complete = false
-        }
+  let pending : Array[(Node?, String, Double, Double, Double, Int, Double?)] = [
+    (Some(node), node.name, node.value, x0, x1, depth, node.delta),
+  ]
+  while pending.length() > 0 {
+    let (source, name, value, left, right, d, delta) = pending[pending.length() -
+      1]
+    ignore(pending.pop())
+    rects.push({
+      x: left,
+      y: d.to_double() * row_height,
+      width: right - left,
+      height: row_height,
+      name,
+      value,
+      depth: d,
+      delta,
+    })
+    guard source is Some(current) else { continue }
+    if right <= left || current.value <= 0.0 {
+      continue
+    }
+    let items : Array[Item] = []
+    for child in current.children {
+      if child.value > 0.0 {
+        items.push({ name: child.name, value: child.value, node: Some(child), })
       }
-      if complete {
-        Some(total - sum)
+    }
+    let own = current.self_time()
+    if own > 0.0 && items.length() > 0 {
+      items.push({ name: self_placeholder(), value: own, node: None, })
+    }
+    items.sort_by(compare_items)
+    let tasks : Array[(Node?, String, Double, Double, Double, Int, Double?)] = []
+    let mut cursor = left
+    for i = 0; i < items.length(); i = i + 1 {
+      let item = items[i]
+      let next = if i + 1 == items.length() {
+        right
       } else {
-        None
+        smaller(
+          right,
+          larger(cursor, cursor + (right - left) * (item.value / current.value)),
+        )
       }
+      let change = match item.node {
+        Some(child) => child.delta
+        None => current.self_delta
+      }
+      tasks.push(
+        (item.node, item.name, item.value, cursor, next, d + 1, change),
+      )
+      cursor = next
     }
-    None => None
-  }
-  items.sort_by(compare_items)
-  let mut cursor = x0
-  let mut index = 0
-  for item in items {
-    index = index + 1
-    let next = if index == items.length() {
-      // 最后一个子项直接顶到父节点右边界，消除浮点累加误差
-      x1
-    } else {
-      cursor + span * (item.value / node.value)
+    for i = tasks.length() - 1; i >= 0; i = i - 1 {
+      pending.push(tasks[i])
     }
-    match item.node {
-      Some(child) =>
-        layout_node(child, cursor, next, depth + 1, row_height, rects)
-      None =>
-        rects.push({
-          x: cursor,
-          y: (depth + 1).to_double() * row_height,
-          width: next - cursor,
-          height: row_height,
-          name: item.name,
-          value: item.value,
-          depth: depth + 1,
-          delta: self_delta,
-        })
-    }
-    cursor = next
   }
 }
 
@@ -191,7 +173,10 @@ pub fn layout(
   width : Double,
   row_height : Double,
   inverted? : Bool,
-) -> Layout {
+) -> Layout raise ValidationError {
+  validate_tree(tree)
+  positive_geometry(width, "width")
+  positive_geometry(row_height, "row_height")
   let flip = match inverted {
     Some(value) => value
     None => false
@@ -208,7 +193,10 @@ pub fn layout(
       let next = if index == tree.roots.length() {
         width
       } else {
-        cursor + width * (root.value / tree.total)
+        smaller(
+          width,
+          larger(cursor, cursor + width * (root.value / tree.total)),
+        )
       }
       layout_node(root, cursor, next, 0, row_height, rects)
       cursor = next
@@ -225,6 +213,9 @@ pub fn layout(
     for rect in rects {
       rect.y = (max_depth - rect.depth).to_double() * row_height
     }
+  }
+  if !finite((max_depth.to_double() + 1.0) * row_height) {
+    raise InvalidGeometry("height overflow")
   }
   // 差异配色需要一个统一的量级做归一化，否则一处剧变就会让其它差别看不出来
   let mut max_delta = 0.0

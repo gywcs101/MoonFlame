@@ -74,15 +74,18 @@ fn WeightUnit::to_nanoseconds(self : WeightUnit) -> Double {
 fn format_scaled(value : Double) -> String {
   let negative = value < 0.0
   let magnitude = if negative { -value } else { value }
-  let scaled = (magnitude * 100.0 + 0.5).to_int()
-  let whole = scaled / 100
-  let frac = scaled % 100
-  let sign = if negative { "-" } else { "" }
-  if frac == 0 {
+  if !finite(magnitude) || magnitude >= 1.0e12 {
+    return value.to_string()
+  }
+  let scaled = (magnitude * 100.0 + 0.5).to_int64()
+  let whole = scaled / 100L
+  let frac = scaled % 100L
+  let sign = if negative && scaled != 0L { "-" } else { "" }
+  if frac == 0L {
     sign + whole.to_string()
-  } else if frac % 10 == 0 {
-    sign + whole.to_string() + "." + (frac / 10).to_string()
-  } else if frac < 10 {
+  } else if frac % 10L == 0L {
+    sign + whole.to_string() + "." + (frac / 10L).to_string()
+  } else if frac < 10L {
     sign + whole.to_string() + ".0" + frac.to_string()
   } else {
     sign + whole.to_string() + "." + frac.to_string()
@@ -133,14 +136,24 @@ pub fn format_weight(value : Double, unit : WeightUnit) -> String {
   match unit {
     Count => {
       // 负数朝绝对值更大的方向取整，否则 -1200000 会被写成 -1199999
-      let rounded = (if value < 0.0 { value - 0.5 } else { value + 0.5 }).to_int()
+      if !finite(value) || value.abs() >= 9007199254740992.0 {
+        return value.to_string()
+      }
+      let rounded = (if value < 0.0 { value - 0.5 } else { value + 0.5 }).to_int64()
       if rounded.to_double() == value {
         add_commas(rounded.to_string())
       } else {
         value.to_string()
       }
     }
-    _ => format_duration(value * WeightUnit::to_nanoseconds(unit))
+    _ => {
+      let ns = value * WeightUnit::to_nanoseconds(unit)
+      if !finite(ns) && finite(value) {
+        value.to_string() + " " + unit.label()
+      } else {
+        format_duration(ns)
+      }
+    }
   }
 }
 
