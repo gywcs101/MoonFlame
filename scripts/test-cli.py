@@ -14,13 +14,19 @@ def main():
     parser.add_argument('--target', choices=['native', 'js', 'wasm'], default='native')
     args = parser.parse_args()
     subprocess.run(['moon', 'build', '--target', args.target, '--deny-warn'], cwd=ROOT, check=True)
-    base = ROOT / '_build' / args.target / 'debug/build/cmd/main'
+    # Moon has changed the default build profile directory across releases
+    # (for example, debug versus release). Discover the actual artifact
+    # instead of assuming one private _build path.
+    build_root = ROOT / '_build' / args.target
     if args.target == 'native':
-        command = [str(base / ('main.exe' if os.name == 'nt' else 'main'))]
+        names = {'main.exe', 'main'}
+        command = [str(next(p for p in build_root.rglob('*') if p.is_file() and p.name in names and 'cmd' in p.parts and 'main' in p.parts))]
     elif args.target == 'js':
-        command = ['node', str(base / 'main.js')]
+        path = next(p for p in build_root.rglob('main.js') if p.is_file() and 'cmd' in p.parts and 'main' in p.parts)
+        command = ['node', str(path)]
     else:
-        command = ['moonrun', str(base / 'main.wasm'), '--']
+        path = next(p for p in build_root.rglob('main.wasm') if p.is_file() and 'cmd' in p.parts and 'main' in p.parts)
+        command = ['moonrun', str(path), '--']
 
     def run(*argv, status=0):
         result = subprocess.run([*command, *map(str, argv)], cwd=ROOT, encoding='utf-8', capture_output=True, timeout=90)
