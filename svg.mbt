@@ -173,34 +173,31 @@ fn escape_xml(text : String) -> String {
 ///|
 /// 坐标保留一位小数，用于字号等非边界的数值。
 fn coord(value : Double) -> String {
-  let scaled = (value * 10.0 + 0.5).to_int()
-  let whole = scaled / 10
-  let frac = scaled % 10
-  if frac == 0 {
-    whole.to_string()
+  quantized_text(quantize(value))
+}
+
+///|
+fn quantize(value : Double) -> Double {
+  if value.abs() >= 1.0e14 {
+    value * 10.0
   } else {
-    "\{whole}.\{frac}"
+    (value * 10.0 + 0.5).floor()
   }
 }
 
 ///|
-/// 把坐标量化到 0.1 像素。
-///
-/// 相邻矩形**共用的边界会被量化成同一个整数**，因此画出来精确贴合，
-/// 不会因为各自四舍五入而留下亚像素裂缝——那种缝在图形被放大后是看得见的。
-fn quantize(value : Double) -> Int {
-  (value * 10.0 + 0.5).to_int()
-}
-
-///|
-/// 由量化后的整数生成坐标文本。
-fn quantized_text(tenths : Int) -> String {
-  let whole = tenths / 10
-  let frac = tenths % 10
+fn quantized_text(tenths : Double) -> String {
+  let value = tenths / 10.0
+  if value.abs() >= 1.0e14 {
+    return value.to_string()
+  }
+  let whole = value.to_int64()
+  let frac = (tenths - whole.to_double() * 10.0).abs().to_int()
   if frac == 0 {
     whole.to_string()
   } else {
-    "\{whole}.\{frac}"
+    let sign = if value < 0.0 && whole == 0L { "-" } else { "" }
+    sign + whole.to_string() + "." + frac.to_string()
   }
 }
 
@@ -216,183 +213,73 @@ fn quantized_text(tenths : Int) -> String {
 ///   - 帧名从 `data-name` 读取，而不是去解析提示文本；
 ///   - 所有状态（当前搜索词、是否忽略大小写）都存在变量里，不依赖 URL。
 fn interaction_script(font : Double, inverted : Bool) -> String {
-  let inverted_text = if inverted { "true" } else { "false" }
+  let constants = "var XPAD = " +
+    coord(CANVAS_XPAD) +
+    "; var FONTSIZE = " +
+    coord(font) +
+    "; var FONTWIDTH = " +
+    coord(FONT_WIDTH) +
+    "; var INVERTED = " +
+    (if inverted { "true" } else { "false" }) +
+    "; var SEARCHCOLOR = \"" +
+    SEARCH_COLOR +
+    "\";\n"
+  constants +
   [
-    "\"use strict\";",
-    "var SVG, FRAMES, DETAILS, SEARCHBTN, UNZBTN, MATCHED, ICBTN;",
-    "var orig = [], searching = false, term = null, ignorecase = false;",
-    "var canvasW = 0;",
-    "\nvar XPAD = " + coord(CANVAS_XPAD) + ";",
-    "var FONTSIZE = " + coord(font) + ";",
-    "var FONTWIDTH = " + coord(FONT_WIDTH) + ";",
-    "var INVERTED = " + inverted_text + ";",
-    "var SEARCHCOLOR = \"" + SEARCH_COLOR + "\";",
-    "var NAMETYPE = \"Function:\";",
-    "\nfunction init() {",
-    "  SVG = document.getElementsByTagName(\"svg\")[0];",
-    "  var box = document.getElementById(\"frames\");",
-    "  if (!box) return;",
-    "  FRAMES = box.children;",
-    "  DETAILS = document.getElementById(\"details\").firstChild;",
-    "  SEARCHBTN = document.getElementById(\"search\");",
-    "  UNZBTN = document.getElementById(\"unzoom\");",
-    "  MATCHED = document.getElementById(\"matched\");",
-    "  ICBTN = document.getElementById(\"ignorecase\");",
-    "  canvasW = SVG.width.baseVal.value;",
-    "  for (var i = 0; i < FRAMES.length; i++) {",
-    "    var r = rectOf(FRAMES[i]);",
-    "    orig.push({ x: num(r, \"x\"), y: num(r, \"y\"), w: num(r, \"width\"),",
-    "                fill: r.getAttribute(\"fill\") });",
-    "  }",
-    "  wire();",
-    "}",
-    "\nfunction num(el, attr) { return parseFloat(el.getAttribute(attr)); }",
-    "function rectOf(g) { return g.querySelector(\"rect\"); }",
-    "function textOf(g) { return g.querySelector(\"text\"); }",
-    "function nameOf(g) { return g.getAttribute(\"data-name\") || \"\"; }",
-    "function indexOf(g) {",
-    "  for (var i = 0; i < FRAMES.length; i++) if (FRAMES[i] === g) return i;",
-    "  return -1;",
-    "}",
-    "function groupOf(node) {",
-    "  while (node && node.parentNode && node.parentNode.id !== \"frames\") {",
-    "    node = node.parentNode;",
-    "  }",
-    "  return node && node.parentNode && node.parentNode.id === \"frames\" ? node : null;",
-    "}",
-    "\nfunction setGeom(g, x, w) {",
-    "  var r = rectOf(g), t = textOf(g);",
-    "  r.setAttribute(\"x\", x);",
-    "  r.setAttribute(\"width\", w);",
-    "  if (t) t.setAttribute(\"x\", x + 3);",
-    "  fitText(g, x, w);",
-    "}",
-    "\n// 窄框里写字会溢出，放不下就改成截断加省略号",
-    "function fitText(g, x, w) {",
-    "  var t = textOf(g);",
-    "  if (!t) return;",
-    "  var full = nameOf(g);",
-    "  var room = w - 6;",
-    "  if (room < 2 * FONTSIZE * FONTWIDTH) { t.textContent = \"\"; return; }",
-    "  var chars = Math.floor(room / (FONTSIZE * FONTWIDTH));",
-    "  t.textContent = chars >= full.length ? full : full.substring(0, chars - 2) + \"..\";",
-    "}",
-    "\nfunction applyZoom(i) {",
-    "  var base = orig[i];",
-    "  var xmin = base.x, xmax = base.x + base.w;",
-    "  var ratio = (canvasW - 2 * XPAD) / (xmax - xmin);",
-    "  var fudge = 0.0001;",
-    "  UNZBTN.classList.remove(\"hide\");",
-    "  for (var k = 0; k < FRAMES.length; k++) {",
-    "    var g = FRAMES[k], o = orig[k];",
-    "    var isAncestor = INVERTED ? (o.y < base.y) : (o.y > base.y);",
-    "    if (isAncestor) {",
-    "      if (o.x <= xmin + fudge && o.x + o.w + fudge >= xmax) {",
-    "        g.classList.add(\"parent\");",
-    "        setGeom(g, XPAD, canvasW - 2 * XPAD);",
-    "      } else { g.classList.add(\"hide\"); }",
-    "    } else if (o.x + fudge < xmin || o.x >= xmax - fudge) {",
-    "      g.classList.add(\"hide\");",
-    "    } else {",
-    "      setGeom(g, (o.x - xmin) * ratio + XPAD, o.w * ratio);",
-    "    }",
-    "  }",
-    "  if (term !== null) doSearch();",
-    "}",
-    "\nfunction resetZoom() {",
-    "  UNZBTN.classList.add(\"hide\");",
-    "  for (var k = 0; k < FRAMES.length; k++) {",
-    "    FRAMES[k].classList.remove(\"parent\");",
-    "    FRAMES[k].classList.remove(\"hide\");",
-    "    setGeom(FRAMES[k], orig[k].x, orig[k].w);",
-    "  }",
-    "  if (term !== null) doSearch();",
-    "}",
-    "\nfunction clearHighlight() {",
-    "  for (var k = 0; k < FRAMES.length; k++) {",
-    "    rectOf(FRAMES[k]).setAttribute(\"fill\", orig[k].fill);",
-    "  }",
-    "}",
-    "\nfunction doSearch() {",
-    "  if (term === null) return;",
-    "  var re;",
-    "  try { re = new RegExp(term, ignorecase ? \"i\" : \"\"); }",
-    "  catch (e) { return; }",
-    "  clearHighlight();",
-    "  var spans = [], maxw = 0, hit = false;",
-    "  for (var k = 0; k < FRAMES.length; k++) {",
-    "    var g = FRAMES[k], r = rectOf(g);",
-    "    var w = num(r, \"width\");",
-    "    if (w > maxw) maxw = w;",
-    "    if (re.test(nameOf(g))) {",
-    "      r.setAttribute(\"fill\", SEARCHCOLOR);",
-    "      spans.push({ x: num(r, \"x\"), w: w });",
-    "      hit = true;",
-    "    }",
-    "  }",
-    "  if (!hit) return;",
-    "  searching = true;",
-    "  SEARCHBTN.classList.add(\"show\");",
-    "  SEARCHBTN.firstChild.nodeValue = \"Reset Search\";",
-    "  // 命中率按「垂直不重叠」累计：同一列只取最宽的那帧，否则父子会重复计入",
-    "  spans.sort(function (a, b) { return a.x - b.x; });",
-    "  var count = 0, lastx = -1, lastw = 0, fudge = 0.0001;",
-    "  for (var j = 0; j < spans.length; j++) {",
-    "    if (spans[j].x >= lastx + lastw - fudge) {",
-    "      count += spans[j].w; lastx = spans[j].x; lastw = spans[j].w;",
-    "    }",
-    "  }",
-    "  var pct = 100 * count / maxw;",
-    "  MATCHED.classList.remove(\"hide\");",
-    "  MATCHED.firstChild.nodeValue = \"Matched: \" + (pct === 100 ? 100 : pct.toFixed(1)) + \"%\";",
-    "}",
-    "\nfunction resetSearch() {",
-    "  searching = false;",
-    "  term = null;",
-    "  clearHighlight();",
-    "  SEARCHBTN.classList.remove(\"show\");",
-    "  SEARCHBTN.firstChild.nodeValue = \"Search\";",
-    "  MATCHED.classList.add(\"hide\");",
-    "  MATCHED.firstChild.nodeValue = \"\";",
-    "}",
-    "\nfunction searchPrompt() {",
-    "  if (searching) { resetSearch(); return; }",
-    "  var t = prompt(\"Enter a search term (regexp allowed, eg: ^moon)\" +",
-    "    (ignorecase ? \", ignoring case\" : \"\") +",
-    "    \"\\nPress Ctrl-i to toggle case sensitivity\", \"\");",
-    "  if (t === null) return;",
-    "  term = t;",
-    "  doSearch();",
-    "}",
-    "\nfunction toggleIgnoreCase() {",
-    "  ignorecase = !ignorecase;",
-    "  if (ignorecase) ICBTN.classList.add(\"show\"); else ICBTN.classList.remove(\"show\");",
-    "  if (searching) doSearch();",
-    "}",
-    "\nfunction wire() {",
-    "  window.addEventListener(\"click\", function (e) {",
-    "    if (e.target.id === \"unzoom\") { resetZoom(); return; }",
-    "    if (e.target.id === \"search\") { searchPrompt(); return; }",
-    "    if (e.target.id === \"ignorecase\") { toggleIgnoreCase(); return; }",
-    "    var g = groupOf(e.target);",
-    "    if (g) applyZoom(indexOf(g));",
-    "  }, false);",
-    "  window.addEventListener(\"mouseover\", function (e) {",
-    "    var g = groupOf(e.target);",
-    "    if (g) DETAILS.nodeValue = NAMETYPE + \" \" + g.querySelector(\"title\").textContent;",
-    "  }, false);",
-    "  window.addEventListener(\"mouseout\", function (e) {",
-    "    var g = groupOf(e.target);",
-    "    if (g) DETAILS.nodeValue = \" \";",
-    "  }, false);",
-    "  window.addEventListener(\"keydown\", function (e) {",
-    "    if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {",
-    "      e.preventDefault(); searchPrompt();",
-    "    } else if (e.ctrlKey && e.keyCode === 73) {",
-    "      e.preventDefault(); toggleIgnoreCase();",
-    "    }",
-    "  }, false);",
-    "}",
+    "\"use strict\";", "var SVG, FRAMES, DETAILS, SEARCHBTN, UNZBTN, MATCHED, ICBTN;",
+    "var orig = [], searching = false, term = null, ignorecase = false;", "var canvasW = 0;",
+    "function init() {", "  SVG = document.getElementsByTagName(\"svg\")[0];", "  FRAMES = document.getElementById(\"frames\").children;",
+    "  DETAILS = document.getElementById(\"details\").firstChild;", "  SEARCHBTN = document.getElementById(\"search\");",
+    "  UNZBTN = document.getElementById(\"unzoom\");", "  MATCHED = document.getElementById(\"matched\");",
+    "  ICBTN = document.getElementById(\"ignorecase\");", "  canvasW = SVG.width.baseVal.value;",
+    "  for (var i = 0; i < FRAMES.length; i++) {", "    var r = rectOf(FRAMES[i]);",
+    "    orig.push({x:num(r,\"x\"), y:num(r,\"y\"), w:num(r,\"width\"), fill:r.getAttribute(\"fill\")});",
+    "  }", "  wire();", "}", "function num(el, a) { return parseFloat(el.getAttribute(a)); }",
+    "function rectOf(g) { return g.querySelector(\"rect\"); }", "function textOf(g) { return g.querySelector(\"text\"); }",
+    "function nameOf(g) { return g.getAttribute(\"data-name\") || \"\"; }", "function indexOf(g) { return Array.prototype.indexOf.call(FRAMES,g); }",
+    "function groupOf(n) {", "  while(n && n.parentNode && n.parentNode.id !== \"frames\") n=n.parentNode;",
+    "  return n && n.parentNode && n.parentNode.id === \"frames\" ? n : null;", "}",
+    "function fitText(g,x,w) {", "  var t=textOf(g); if(!t) return;", "  var full=nameOf(g), room=w-6, chars=Math.floor(room/(FONTSIZE*FONTWIDTH));",
+    "  var points=Array.from(full);", "  t.textContent=chars<2 ? \"\" : chars>=points.length ? full : points.slice(0,chars-2).join(\"\")+\"..\";",
+    "}", "function setGeom(g,x,w) {", "  var r=rectOf(g),t=textOf(g); r.setAttribute(\"x\",x); r.setAttribute(\"width\",w);",
+    "  if(t) t.setAttribute(\"x\",x+3); fitText(g,x,w);", "}", "function applyZoom(i) {",
+    "  if(i<0 || orig[i].w<=0) return;", "  var base=orig[i], xmin=base.x, xmax=base.x+base.w;",
+    "  var ratio=(canvasW-2*XPAD)/base.w, fudge=0.0001;", "  UNZBTN.classList.remove(\"hide\");",
+    "  for(var k=0;k<FRAMES.length;k++) {", "    var g=FRAMES[k],o=orig[k];", "    g.classList.remove(\"hide\"); g.classList.remove(\"parent\");",
+    "    var ancestor=INVERTED ? o.y<base.y : o.y>base.y;", "    if(ancestor) {",
+    "      if(o.x<=xmin+fudge && o.x+o.w+fudge>=xmax) {", "        g.classList.add(\"parent\"); setGeom(g,XPAD,canvasW-2*XPAD);",
+    "      } else g.classList.add(\"hide\");", "    } else if(o.x<xmin-fudge || o.x+o.w>xmax+fudge) g.classList.add(\"hide\");",
+    "    else setGeom(g,(o.x-xmin)*ratio+XPAD,o.w*ratio);", "  }", "  if(term!==null) doSearch();",
+    "}", "function resetZoom() {", "  UNZBTN.classList.add(\"hide\");", "  for(var k=0;k<FRAMES.length;k++) {",
+    "    FRAMES[k].classList.remove(\"hide\"); FRAMES[k].classList.remove(\"parent\");",
+    "    setGeom(FRAMES[k],orig[k].x,orig[k].w);", "  }", "  if(term!==null) doSearch();",
+    "}", "function clearHighlight() {", "  for(var k=0;k<FRAMES.length;k++) rectOf(FRAMES[k]).setAttribute(\"fill\",orig[k].fill);",
+    "}", "function doSearch() {", "  if(term===null) return;", "  clearHighlight();",
+    "  searching=true; SEARCHBTN.classList.add(\"show\"); SEARCHBTN.firstChild.nodeValue=\"Reset Search\";",
+    "  MATCHED.classList.remove(\"hide\");", "  var re;", "  try { re=new RegExp(term,ignorecase?\"i\":\"\"); }",
+    "  catch(e) { MATCHED.firstChild.nodeValue=\"Invalid regular expression\"; return; }",
+    "  var spans=[];", "  for(var k=0;k<FRAMES.length;k++) {", "    var g=FRAMES[k];",
+    "    if(g.classList.contains(\"hide\") || g.classList.contains(\"parent\")) continue;",
+    "    if(re.test(nameOf(g))) {", "      var r=rectOf(g), x=num(r,\"x\"), right=x+num(r,\"width\");",
+    "      rectOf(g).setAttribute(\"fill\",SEARCHCOLOR);", "      spans.push({x:Math.max(XPAD,x),right:Math.min(canvasW-XPAD,right)});",
+    "    }", "  }", "  spans.sort(function(a,b){return a.x-b.x || b.right-a.right;});",
+    "  var count=0,end=XPAD;", "  for(var j=0;j<spans.length;j++) {", "    var s=spans[j];",
+    "    if(s.right>end) { count+=s.right-Math.max(end,s.x); end=s.right; }", "  }",
+    "  var pct=Math.max(0,Math.min(100,100*count/(canvasW-2*XPAD)));", "  MATCHED.firstChild.nodeValue=\"Matched: \"+(pct===100?100:pct.toFixed(1))+\"%\";",
+    "}", "function resetSearch() {", "  searching=false; term=null; clearHighlight(); SEARCHBTN.classList.remove(\"show\");",
+    "  SEARCHBTN.firstChild.nodeValue=\"Search\"; MATCHED.classList.add(\"hide\"); MATCHED.firstChild.nodeValue=\" \";",
+    "}", "function searchPrompt() {", "  if(searching) {resetSearch();return;}",
+    "  var t=prompt(\"Enter a regular expression; Ctrl-I toggles case sensitivity\",\"\");",
+    "  if(t===null) return; term=t;doSearch();", "}", "function toggleIgnoreCase() {",
+    "  ignorecase=!ignorecase; ICBTN.classList.toggle(\"show\",ignorecase);", "  if(term!==null) doSearch();",
+    "}", "function wire() {", "  window.addEventListener(\"click\",function(e){",
+    "    if(e.target.id===\"unzoom\") {resetZoom();return;}", "    if(e.target.id===\"search\") {searchPrompt();return;}",
+    "    if(e.target.id===\"ignorecase\") {toggleIgnoreCase();return;}", "    var g=groupOf(e.target);if(g) applyZoom(indexOf(g));",
+    "  });", "  window.addEventListener(\"mouseover\",function(e){var g=groupOf(e.target);if(g) DETAILS.nodeValue=\"Function: \"+g.querySelector(\"title\").textContent;});",
+    "  window.addEventListener(\"mouseout\",function(e){if(groupOf(e.target)) DETAILS.nodeValue=\" \";});",
+    "  window.addEventListener(\"keydown\",function(e){", "    if(e.keyCode===114 || (e.ctrlKey && e.keyCode===70)){e.preventDefault();searchPrompt();}",
+    "    else if(e.ctrlKey && e.keyCode===73){e.preventDefault();toggleIgnoreCase();}",
+    "  });", "}",
   ].join("\n")
 }
 
@@ -437,7 +324,8 @@ pub fn render_svg(
   show_labels? : Bool,
   unit? : WeightUnit,
   normalize_names? : Bool,
-) -> String {
+) -> String raise ValidationError {
+  validate_layout(layout)
   let threshold = match min_width {
     Some(value) => value
     None => MIN_RECT_WIDTH
@@ -445,6 +333,10 @@ pub fn render_svg(
   let font = match font_size {
     Some(value) => value
     None => BASE_FONT_SIZE
+  }
+  positive_geometry(font, "font_size")
+  if !finite(threshold) || threshold < 0.0 {
+    raise InvalidGeometry("invalid min_width")
   }
   let labels = match show_labels {
     Some(value) => value
@@ -463,6 +355,9 @@ pub fn render_svg(
   let pad_y_bottom = pad_bottom(font)
   let width = layout.width + 2.0 * pad_x
   let height = layout.height() + pad_y_top + pad_y_bottom
+  if !finite(width * 10.0) || !finite(height * 10.0) || !finite(font * 10.0) {
+    raise InvalidGeometry("canvas overflow")
+  }
   let width_text = quantized_text(quantize(width))
   let height_text = quantized_text(quantize(height))
   let sb = StringBuilder()
@@ -560,6 +455,9 @@ pub fn render_svg(
     let bottom = quantize(pad_y_top + rect.y + box_height)
     let y_text = quantized_text(top)
     let rect_width = right - left
+    if rect_width <= 0.0 {
+      continue
+    }
     // 差异模式下按变化量着色，否则按帧名着暖色
     let fill = match rect.delta {
       Some(delta) => fill_for_delta(delta, layout.max_delta)
@@ -605,20 +503,20 @@ pub fn render_svg(
       "\" rx=\"2\" ry=\"2\"/>",
     )
     if labels {
-      let room = rect_width.to_double() / 10.0 - 6.0
+      let room = rect_width / 10.0 - 6.0
       let fits = shown.char_length().to_double() * font * FONT_WIDTH
+      let baseline = rect.y + pad_y_top + (rect.height + font) / 2.0 - 1.0
+      sb.write_string(
+        "<text x=\"" +
+        quantized_text(left + 30.0) +
+        "\" y=\"" +
+        coord(baseline) +
+        "\">",
+      )
       if fits <= room {
-        let baseline = rect.y + pad_y_top + (rect.height + font) / 2.0 - 1.0
-        sb.write_string(
-          "<text x=\"" +
-          quantized_text(left + 30) +
-          "\" y=\"" +
-          coord(baseline) +
-          "\">",
-        )
         sb.write_string(escaped)
-        sb.write_string("</text>")
       }
+      sb.write_string("</text>")
     }
     sb.write_string("</g>\n")
   }

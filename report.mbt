@@ -48,55 +48,61 @@ fn matches_query(name : String, query : String) -> Bool {
 }
 
 ///|
-/// 深度优先遍历，按**直接调用者**聚合权重。
-///
-/// 只记直属父节点的名字、并把同一父节点的多次出现合并，而不是把每条完整
-/// 调用链都列一行——递归函数会产生大量几乎相同的长链，全列出来反而看不出
-/// 「到底是谁在调用它」。
-fn collect_callers(
-  node : Node,
-  parent : String,
+/// Count each report group once on a root-to-sample path. Enter/leave events
+/// keep memory linear in tree depth and avoid host recursion.
+fn covered_relations(
+  tree : CallTree,
   wanted : String,
-  acc : Map[String, Double],
-) -> Unit {
-  if matches_query(node.name, wanted) {
-    // 自递归产生的边要被排除：那条边承载的权重就是本函数自己的子树，
-    // 逐层累加会让同一段时间被重复计入，占比算出 369% 这种荒谬值。
-    // 递归深度不改变「谁在调用它」这个问题的答案。
-    let self_edge = parent != "" && matches_query(parent, wanted)
-    if !self_edge {
-      let label = if parent == "" { "(根帧)" } else { parent }
-      let current = match acc.get(label) {
-        Some(value) => value
-        None => 0.0
+  callers : Bool,
+) -> Array[Relation] raise ValidationError {
+  validate_tree(tree)
+  let acc : Map[String, Double] = Map([])
+  let active : Map[String, Bool] = Map([])
+  let pending : Array[(Node, String?, Bool, String?)] = []
+  for root in tree.roots {
+    pending.push((root, None, false, None))
+  }
+  while pending.length() > 0 {
+    let (node, parent, leaving, entered) = pending[pending.length() - 1]
+    ignore(pending.pop())
+    if leaving {
+      if entered is Some(key) {
+        active.set(key, false)
       }
-      acc.set(label, current + node.value)
+      continue
+    }
+    let key = if callers && matches_query(node.name, wanted) {
+      Some(
+        match parent {
+          None => "R:"
+          Some(name) => "F:" + name
+        },
+      )
+    } else if !callers {
+      match parent {
+        Some(name) =>
+          if matches_query(name, wanted) {
+            Some("F:" + node.name)
+          } else {
+            None
+          }
+        None => None
+      }
+    } else {
+      None
+    }
+    let mut added : String? = None
+    if key is Some(k) && active.get(k) != Some(true) {
+      active.set(k, true)
+      acc.set(k, acc.get(k).unwrap_or(0.0) + node.value)
+      added = Some(k)
+    }
+    pending.push((node, parent, true, added))
+    for i = node.children.length() - 1; i >= 0; i = i - 1 {
+      pending.push((node.children[i], Some(node.name), false, None))
     }
   }
-  for child in node.children {
-    collect_callers(child, node.name, wanted, acc)
-  }
-}
-
-///|
-/// 深度优先遍历，按**直接子函数名**聚合权重。
-fn collect_callees(
-  node : Node,
-  wanted : String,
-  acc : Map[String, Double],
-) -> Unit {
-  if matches_query(node.name, wanted) {
-    for child in node.children {
-      let current = match acc.get(child.name) {
-        Some(value) => value
-        None => 0.0
-      }
-      acc.set(child.name, current + child.value)
-    }
-  }
-  for child in node.children {
-    collect_callees(child, wanted, acc)
-  }
+  relations_of(acc, tree.total)
 }
 
 ///|
@@ -105,10 +111,19 @@ fn relations_of(acc : Map[String, Double], total : Double) -> Array[Relation] {
   let out : Array[Relation] = []
   for pair in acc {
     out.push({
-      label: pair.0,
+      label: if pair.0 == "R:" {
+        "(根帧)"
+      } else {
+        let name = pair.0[2:].to_owned()
+        if name == "(根帧)" {
+          "[函数] " + name
+        } else {
+          name
+        }
+      },
       value: pair.1,
       ratio: if total > 0.0 {
-        pair.1 / total
+        (pair.1 / total).clamp(min=0.0, max=1.0)
       } else {
         0.0
       },
@@ -123,22 +138,40 @@ fn relations_of(acc : Map[String, Double], total : Double) -> Array[Relation] {
 ///
 /// 同一个函数会在多条路径下被调用（例如 `array::Array::at` 既在冒泡排序里
 /// 也在插入排序里被调用），因此返回的是一个列表而不是单条路径。
-pub fn find_callers(tree : CallTree, wanted : String) -> Array[Relation] {
-  let acc : Map[String, Double] = Map([])
-  for root in tree.roots {
-    collect_callers(root, "", wanted, acc)
-  }
-  relations_of(acc, tree.total)
+pub fn find_callers(
+  tree : CallTree,
+  wanted : String,
+) -> Array[Relation] raise ValidationError {
+  covered_relations(tree, wanted, true)
 }
 
 ///|
-/// 查询「这个函数调用了谁」。按被调用者聚合。
-pub fn find_callees(tree : CallTree, wanted : String) -> Array[Relation] {
-  let acc : Map[String, Double] = Map([])
-  for root in tree.roots {
-    collect_callees(root, wanted, acc)
+pub fn find_callees(
+  tree : CallTree,
+  wanted : String,
+) -> Array[Relation] raise ValidationError {
+  covered_relations(tree, wanted, false)
+}
+
+///|
+/// Distinguish a matched leaf from a query that matched no frame.
+pub fn has_matching_frame(
+  tree : CallTree,
+  wanted : String,
+) -> Bool raise ValidationError {
+  validate_tree(tree)
+  let pending = tree.roots.copy()
+  while pending.length() > 0 {
+    let node = pending[pending.length() - 1]
+    ignore(pending.pop())
+    if matches_query(node.name, wanted) {
+      return true
+    }
+    for child in node.children {
+      pending.push(child)
+    }
   }
-  relations_of(acc, tree.total)
+  false
 }
 
 ///|
@@ -148,14 +181,22 @@ pub fn render_relations(
   wanted : String,
   kind : String,
   unit : WeightUnit,
+  matched? : Bool = false,
 ) -> String {
   let sb = StringBuilder()
   if relations.length() == 0 {
-    sb.write_string("没有找到与「\{wanted}」匹配的帧。\n")
+    if matched {
+      sb.write_string("「\{wanted}」没有直接被调用者。\n")
+    } else {
+      sb.write_string("没有找到与「\{wanted}」匹配的帧。\n")
+    }
     return sb.to_string()
   }
   sb.write_string("\{kind}「\{wanted}」— 共 \{relations.length()} 项\n\n")
-  sb.write_string("  占比       权重  调用链\n")
+  sb.write_string(
+    "每项为样本覆盖占比（≤100%）；不同项可能重叠，合计不保证为100%。\n",
+  )
+  sb.write_string("  占比       权重  直接调用关系\n")
   for r in relations {
     sb.write_string(
       "  " +
@@ -211,7 +252,9 @@ pub fn compute_delta(
   before : CallTree,
   after : CallTree,
   top : Int,
-) -> Array[DeltaEntry] {
+) -> Array[DeltaEntry] raise ValidationError {
+  validate_tree(before)
+  validate_tree(after)
   let before_map : Map[String, Double] = Map([])
   for hotspot in top_hotspots(before, 0) {
     before_map.set(hotspot.name, hotspot.self_time)

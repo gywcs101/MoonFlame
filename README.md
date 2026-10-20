@@ -1,388 +1,259 @@
 # MoonFlame
 
-**用纯 MoonBit 把「折叠栈」性能数据渲染成一张可交互的 SVG 火焰图。**
+**用 MoonBit 将折叠栈性能数据转换成可交互的 SVG 火焰图。**
 
-不依赖 Go、Node 或任何运行时——产物是单个文件，双击即看，可直接贴进 README。
+生成的 SVG 是一个自包含文件，可以在浏览器离线打开、归档和分享。
+MoonFlame 提供可复用的纯计算库及命令行工具；采样由上游工具完成。
 
 ![示例火焰图](examples/flame.png)
 
-> 上图由 `moon run cmd/main -- testdata/demo.folded --out flame.svg` 生成，输入是真实采样数据。
-> 想体验**点击缩放、Ctrl-F 搜索**等交互，请下载 [`examples/flame.svg`](examples/flame.svg) 用浏览器打开
-> （内嵌脚本在 `<img>` 引用下不会执行，原因见[已知限制](#已知限制)）。
+下载 [SVG 示例](examples/flame.svg) 并用浏览器打开，可体验悬停、缩放与搜索。
+GitHub README 的图片引用只显示静态图，不会执行 SVG 内的脚本。
 
----
+## 环境与快速验证
 
-## 目录
-
-- [这是什么](#这是什么)
-- [主要功能](#主要功能)
-- [环境要求](#环境要求)
-- [快速验证](#快速验证)
-- [完整流程](#完整流程)
-- [命令行](#命令行)
-- [作为库使用](#作为库使用)
-- [差异火焰图](#差异火焰图)
-- [已知限制](#已知限制)
-- [目录结构](#目录结构)
-- [开发](#开发)
-- [参考与许可](#参考与许可)
-
----
-
-## 这是什么
-
-一个**渲染器**。输入折叠栈（folded stack）文本，输出一张能直接看的 SVG。
-
-```
-折叠栈文本  ──▶  MoonFlame  ──▶  单个 SVG 文件
-```
-
-折叠栈是 Brendan Gregg 定义的一种通用中间格式，每行一个调用栈加它的耗时：
-
-```text
-____moonbit__main;moonflame::demo::bench__sorting;bubble__sort;array::Array::at 73382500
-```
-
-`perf`、`py-spy`、`async-profiler`、`moon-pprof` 等工具都能产出它。所以 MoonFlame **不绑定任何语言或平台**。
-
-**它不做采样**——那是上游工具的职责。它只负责把这些数据变成一张人一眼能看懂的图。
-
-现有的可视化方案（`go tool pprof`、speedscope、Firefox Profiler）都需要额外运行时或浏览器会话；
-MoonFlame 补的是「**单文件、零环境、可归档**」这一空缺。
-
-## 主要功能
-
-| 功能 | 说明 |
-| --- | --- |
-| **折叠栈解析** | 容忍超深栈（实测 7254 层）、超长单行（181K 字符）、空帧名等各种真实数据里的脏形状 |
-| **调用树聚合** | 同父同名合并累加；计算自身耗时与累计耗时 |
-| **限深合并** | 超过 `--max-depth` 的部分合并为 `(deeper)` 合成帧，**而不是丢弃**——否则深层耗时会被错算到最后一个可见帧上 |
-| **布局** | 火焰图（根在底部）/ 冰柱图两种方向；按值比例切分，父宽严格等于子宽之和 |
-| **可交互 SVG** | 经典火焰图配色 + 内嵌脚本：悬停信息栏、点击缩放、`Reset Zoom`、`Ctrl-F` 正则搜索、`Ctrl-I` 大小写开关、命中占比 |
-| **差异火焰图** | 对比两份剖面，**红 = 变多、蓝 = 变少、白 = 无变化** |
-| **文本报告** | `hotspots` / `callers` / `callees` / `delta` 四个子命令，回答「谁最慢」「谁调用它」「它调用谁」「这次改动让什么变慢了」 |
-| **确定性输出** | 同一输入必得逐字节相同的 SVG，可做快照测试与版本间对比 |
-| **零依赖核心库** | 根包纯计算、无任何外部依赖；文件 IO 只出现在命令行入口 |
-
-配色与交互行为对齐经典实现 `flamegraph.pl`，但对齐的只是**功能规格**——
-其源码采用 CDDL-1.0（文件级弱 copyleft，不是宽松许可），为避免任何许可证混用问题，
-其源码一行未复制。详见 [参考与许可](#参考与许可)。
-
-## 环境要求
-
-| 项 | 要求 | 说明 |
-| --- | --- | --- |
-| MoonBit 工具链 | **`moonc` ≥ 0.10.14** | ⚠️ **硬要求**。低于此版本会因 `implicit_impl_as_method` 报错而**无法编译** |
-| 操作系统 | Windows / macOS / Linux | CI 在三平台 × 四后端上验证 |
-| 采样器 | 不需要 | 只有「分析你自己的程序」时才需要 `moon-pprof`，见[完整流程](#完整流程) |
-
-安装工具链：
+当前版本：`0.2.0`。需要 `moonc >= 0.10.14`，首次安装后执行 `moon update`。
+生成端需要 MoonBit 工具链；查看 SVG 只需要浏览器。核心库没有第三方依赖；
+命令行使用官方 `moonbitlang/x@0.4.45` 读写文件、设置退出状态。
 
 ```bash
-# macOS / Linux
+# macOS / Linux 安装 MoonBit
 curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+```
 
-# Windows（PowerShell）
+```powershell
+# Windows 安装 MoonBit
 irm https://cli.moonbitlang.com/install/powershell.ps1 | iex
 ```
 
-装好后**先确认版本，再更新一次包注册表索引**：
-
 ```bash
-moon version --all   # 确认 moonc >= 0.10.14
-moon update          # 更新包注册表索引
-```
-
-> `moon update` 不能省。全新安装的环境里注册表索引是空的，直接构建会报
-> `Failed to resolve registry dependency ...: module was not found in the registry`。
-
-依赖（官方包 `moonbitlang/x`）由 `moon` 在首次构建时自动拉取，无需手动安装。
-`moon.mod` 目前不支持声明所需的编译器版本，所以这条要求写在 README 里，并由 CI 校验。
-
-## 快速验证
-
-**只想看看效果的话，不需要安装任何采样工具**——仓库里已带一份真实采样数据：
-
-```powershell
+moon version --all
+moon update
 moon run cmd/main -- testdata/demo.folded --out flame.svg
-```
-
-然后用浏览器打开 `flame.svg`。想看文本热点、不出图：
-
-```powershell
 moon run cmd/main -- hotspots testdata/demo.folded --top 10
 ```
 
-仓库还带了两个用例，可以直接跑：
+默认 CLI 目标为 native。Windows 干净环境的标准验证配置为 **MSVC 开发者终端**；
+CI 显式配置 MSVC。旧版 0.10.14 运行时在 MinGW 下存在 `rand_s` 声明问题，
+不自动修改用户工具链，也不把本机运行时补丁作为干净环境证明。
+本机该版本的 native CLI 对含非 ASCII 字符的 Windows 绝对路径有限制；
+可在对应目录使用相对路径，或使用 JS CLI。
 
-| 文件 | 用途 |
-| --- | --- |
-| `testdata/demo.folded` | ⭐ 主样例：32 栈 / 深度 3–13 / 1893 ms |
-| `testdata/stress-recursive.folded` | 极限用例：79 栈 / 最深 **7254 层** / 5.5 MB，用来验证限深与合并 |
-
-不想走命令行、想在 MoonBit 代码里直接调用，见[作为库使用](#作为库使用)。
-
-## 完整流程
-
-想拿它分析**自己的程序**，走这条五步链路。以 MoonBit 程序为例：
-
-**⓪ 装好 MoonBit 工具链**
-
-见[环境要求](#环境要求)。本步只需做一次，且**别忘了 `moon update`**。
-
-**① 安装采样器**（仅采集端需要，渲染器不需要）
-
-需要 [`mizchi/moon-pprof`](https://github.com/mizchi/moon-pprof)，它依赖 Rust 工具链，安装方式见该仓库说明。
-
-**② 把程序编译成 wasm-gc**
-
-```powershell
-moon build --target wasm-gc
-```
-
-> 必须用 wasm-gc：上游采样器基于 wasmtime，加载不了原生可执行文件。
-
-**③ 采样并转成折叠栈**
-
-```powershell
-moon-pprof profile --wasm-gc _build/wasm-gc/debug/build/cmd/main/main.wasm --iterations 3 --out app.pb.gz
-moon-pprof pprof2folded app.pb.gz app.folded
-```
-
-**④ 出图**
-
-```powershell
-moon run cmd/main -- app.folded --out flame.svg
-```
-
-`demo/` 目录里有一个可直接照抄的完整例子（四点负载 + 一键脚本），两个平台各一份：
-
-```powershell
-powershell demo/reproduce.ps1     # Windows
-```
+核心库检查、构建和测试覆盖 wasm、wasm-gc、JS、native；CLI 流和退出码的
+端到端验证覆盖 native、JS、WASI wasm。JS 用法：
 
 ```bash
-bash demo/reproduce.sh            # macOS / Linux
+moon run --target js cmd/main -- testdata/demo.folded --out flame.svg
 ```
 
-两个脚本等价：编译 → 采样 → 转折叠栈 → 打印热点。
+`moonc 0.10.14` 的 wasm-gc `eprintln` 会回退到标准输出，因此该目标不属于
+支持流重定向契约的 CLI 目标；命令行使用 native、JS 或 WASI wasm。
+这不影响 wasm-gc 环境调用纯计算库。
 
-> 采样有随机性：重跑会得到不同的栈数与总耗时（实测行数 32–36、总耗时 1887–1917 ms），但**热点排序稳定**。
-> 折叠栈里**一行 = 一个不同的调用栈**，重复出现的栈会被合并、权重累加，所以文件 32 行而原始样本有 490 个。
+## 输入、数据与核心功能
+
+折叠栈每行是一条调用路径，最后一个空格分隔权重；帧间用分号分隔：
+
+```text
+main;compute;fft 900
+main;compute 100
+```
+
+权重必须为**有限非负数**。空行忽略，零和负零允许但不参与聚合；负数、NaN、
+Infinity、无效数值和缺少权重都属于无效行。空帧名以 `(root)` 显示。
+`--unit` 声明输入权重含义：`ns / us / ms / s / count`，默认纳秒。
+时间自动缩放，计数按原值显示；不要将不明单位的权重直接解释为耗时。
+
+- 聚合在同父同名的节点间进行，原始名称作为身份；显示归一化不改写输入数据。
+- 默认保留 32 个真实帧，超出部分进入 `(deeper)`，不丢失深部权重。
+- 布局按权重比例切分；有子项的节点以 `(self)` 补齐自身权重，消除舍入裂缝。
+  渲染会省略过小矩形，因此可见矩形不承诺覆盖所有子项。
+- 火焰图根在底部，`--inverted` 改为根在顶部的冰柱图。
+- 同输入产生确定性输出，同名帧同色；普通图采用暖色，差异图红增蓝减白不变。
+
+| 冻结样例 | 含义 |
+| --- | --- |
+| `testdata/demo.folded` | 本项目演示程序的真实采样：32 条合并栈、最深 13 帧、总权重约 1893 ms |
+| `testdata/stress-recursive.folded` | 上游样例的冻结剖面转换：最深 7254 帧，用于深度限制和不限深回归 |
+| `testdata/demo-baseline.folded` | 人工构造的演示基线，不是另一次真实采样 |
+
+样例来源、固定提交、生成步骤及适用许可证见
+[第三方材料说明](THIRD_PARTY_NOTICES.md)，SHA-256 见
+[testdata/SOURCES.json](testdata/SOURCES.json)。
 
 ## 命令行
 
-**默认命令只负责出一张图**；一切文本报告都是子命令——这样顶层选项不会随功能增长而膨胀。
-
 ```text
-moon run cmd/main -- <input> [options]                     出图（默认）
-moon run cmd/main -- hotspots  <input> [--top N]           热点榜
-moon run cmd/main -- callers   <input> <name>              谁调用了它
-moon run cmd/main -- callees   <input> <name>              它调用了谁
-moon run cmd/main -- diff      <before> <after> [-o out]   差异火焰图
-moon run cmd/main -- delta     <before> <after> [--top N]  差异文本排行
-moon run cmd/main -- filter    <pattern> <input> [-o out]  栈过滤
+moon run cmd/main -- <input> [options]
+moon run cmd/main -- hotspots <input> [--top N]
+moon run cmd/main -- callers <input> <name>
+moon run cmd/main -- callees <input> <name>
+moon run cmd/main -- diff <before> <after> [-o out.svg]
+moon run cmd/main -- delta <before> <after> [--top N]
+moon run cmd/main -- filter <pattern> <input> [-o out.folded]
 ```
 
-顶层选项（默认命令）：
-
-| 参数 | 默认 | 说明 |
+| 出图参数 | 默认值 | 约束 |
 | --- | --- | --- |
-| `<input>` | 必填 | 折叠栈文件 |
-| `-o, --out <path>` | 标准输出 | 输出路径；不传就打到标准输出 |
-| `--max-depth <n>` | `32` | 每个栈最多保留的帧数，`0` 表示不限制 |
-| `--width <px>` | `1400` | 画布宽度 |
-| `--unit <u>` | `ns` | 权重单位：`ns` / `us` / `ms` / `s` / `count` |
-| `--inverted` | 关 | 输出冰柱方向（根在顶部）；默认是火焰图方向（根在底部） |
+| `-o, --out` | 标准输出 | 指定则写文件 |
+| `--width` | 1400 | 有限且大于 20 像素（左右各留白 10） |
+| `--max-depth` | 32 | 非负整数；0 表示不限深 |
+| `--unit` | ns | 必须为已知单位；也接受代码中定义的完整单位别名 |
+| `--inverted` | 关闭 | 冰柱方向 |
 
-> **为什么需要 `--unit`？** 折叠栈的第 2 列是**不透明的权重**：`moon-pprof` 给纳秒，
-> `perf` / `py-spy` 给采样计数。数值本身区分不出来（`42` 既可能是 42 纳秒也可能是 42 次采样），
-> 所以由你声明。时间会按数量级自动缩放（`871808200` → `871.81 ms`），计数则加千位分隔、不带后缀。
+报告命令接受深度和单位；`hotspots`、`delta` 另接受 `--top`，默认 10，
+0 表示全部，负数无效。`filter` 只接受过滤子串、输入和输出参数。
+参数写错会报错，不会悄悄退回默认值。
 
-### 文本报告
+命令行严格验证所有输入行：只要一行无效，整次失败，不生成部分结果，
+也不打开或截断已有输出文件。库解析接口提供逐行诊断，可由调用方自行决定容错策略。
+所有诊断和写入提示进入标准错误，标准输出只包含结果。
 
-```powershell
-moon run cmd/main -- hotspots testdata/demo.folded --top 5
-moon run cmd/main -- callers  testdata/demo.folded walk_tree
-moon run cmd/main -- callees  testdata/demo.folded build_strings
-moon run cmd/main -- delta    testdata/demo-baseline.folded testdata/demo.folded
-```
+| 退出码 | 含义 |
+| --- | --- |
+| 0 | 成功、帮助、版本查询；过滤零匹配也是成功 |
+| 1 | IO、输入数据、计算或数值校验失败 |
+| 2 | 参数错误 |
 
-`callers` / `callees` **按直接调用者聚合**，而不是把每条完整调用链列一行——递归函数会产生大量
-几乎相同的长链，全列出来反而看不出「到底是谁在调用它」。查询名会先做归一化再按子串匹配，
-所以 `walk_tree`、`walk__tree`、`demo::walk` 都能命中。
+过滤零匹配时输出为空；指定输出路径会以空文件替换旧结果，避免下游误用旧数据。
+普通渲染和报告在没有正权重样本时失败。
 
-`delta` 与差异火焰图互补：**图看结构**（哪条路径变宽了），**表看函数**（哪个函数的自身耗时变了多少）。
-只在其中一侧出现的函数也会列出（另一侧记 0），因为「新增的开销」和「消失的开销」恰恰是差异分析最关心的。
+### 报告与差异
 
-`filter` 是经典的 `grep funcA input | flamegraph.pl` 用法，但省掉了管道——
-输出仍是折叠栈格式，可以直接再喂给出图命令：
+`callers` 按直接调用者、`callees` 按直接被调用者分组。查询先做显示名归一化再按
+子串匹配，分组身份始终是原始完整名称。同一样本对同一条目最多贡献一次，即使自递归
+或互递归也不重复累计；每条占比不超过 100%，不同条目可能重叠，合计不保证为 100%。
+限深后的报告会提示 `(deeper)` 收纳了未展开的部分。
 
-```powershell
+```bash
+moon run cmd/main -- callers testdata/demo.folded walk_tree
+moon run cmd/main -- callees testdata/demo.folded build_strings
 moon run cmd/main -- filter build_strings testdata/demo.folded -o sub.folded
 moon run cmd/main -- sub.folded --out sub.svg
+moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o diff.svg
+moon run cmd/main -- delta testdata/demo-baseline.folded testdata/demo.folded
 ```
 
-权重要原样保留、不做归一化：过滤后的图回答的是「这个子系统内部怎么分配时间」，
-而它占全局多少，靠保留原始权重才能和原图对照。
+差异图**宽度按当前（第二份）剖面**，节点颜色表示累计权重变化；`(self)` 表示
+自身权重变化，独立计算，不会把消失子调用的变化错误归到父函数自身。
+**仅基线存在的帧不显示**，可交换输入生成另一方向，或用 `delta` 查看消失函数。
+文本 `delta` 按函数自身权重变化排序，显示所有只在一侧存在的函数。
 
-### 名称归一化
-
-上游的符号还原并不完整，真实数据里几种形态并存。渲染层会自动归一化（**解析层始终原样保留，数据不会被改写**）：
-
-| 数据里的样子 | 显示为 |
-| --- | --- |
-| `moonflame::demo::build__strings` | `build_strings` |
-| `moonflame4demo13run__workload` | `moonflame::demo::run_workload` |
-| `array5Array3set` | `array::Array::set` |
-| `____moonbit__main` | 不变（下划线开头不做折叠） |
-
-长度前缀的还原是**自校验**的：每段声明的长度必须与实际字符数完全吻合，否则放弃。
-`sha256_finalize`、`utf16le`、`base64encode` 这类名字不会被误改。
-工具提示里会附上**原名**，信息不丢失。
-
-### 交互与配色
-
-用浏览器直接打开生成的 SVG：
-
-| 操作 | 效果 |
-| --- | --- |
-| 悬停 | 底部信息栏显示该帧的完整名字、耗时与占比 |
-| 单击某帧 | 以它为根缩放展开；祖先帧变半透明，无关帧隐藏 |
-| `Reset Zoom` | 复原到全图 |
-| `Ctrl-F` / `Search` | 正则搜索，命中帧高亮为品红，右下角显示命中占比 |
-| `Ctrl-I` / `ic` | 切换搜索是否区分大小写 |
-
-配色沿用经典火焰图的**暖色调色板**（深红 → 橙 → 黄的单维渐变），同名帧同色，便于跨图追踪同一个函数。
-
-## 作为库使用
-
-本项目发布在 [mooncakes.io](https://mooncakes.io/docs/gywcs101/moonflame)。除了命令行，
-也可以直接在自己的 MoonBit 项目里调用——核心链路全是**纯函数**：不碰文件、时间与随机，
-输入输出都是值，拿到 SVG 字符串后怎么落盘由调用方决定。
-
-```moonbit
-import {
-  "gywcs101/moonflame" @moonflame,
-}
-
-///|
-/// 折叠栈文本 → 可交互 SVG。
-fn folded_to_svg(folded : String) -> String {
-  let parsed = @moonflame.parse_folded(folded) // ① 解析折叠栈
-  let tree = @moonflame.aggregate(parsed.samples, max_depth=32) // ② 聚合成调用树
-  let layout = @moonflame.layout(tree, 1400.0, 16.0) // ③ 计算矩形布局
-  @moonflame.render_svg(layout) // ④ 渲染成 SVG 文本
-}
-```
-
-上面这段是从「外部使用者」视角写的黑盒用例，已实测可编译并产出含 `<g id="frames">` 的完整 SVG。
-
-几个常用入口：
-
-| 目的 | 函数 |
-| --- | --- |
-| 解析 | `parse_folded(text)` → `ParseResult`（`.samples` / `.skipped_lines`） |
-| 聚合 | `aggregate(samples, max_depth=32)` → `CallTree`（`.roots` / `.total`） |
-| 布局 | `layout(tree, width, row_height, inverted=false)` → `Layout`（`.rects` / `.height()`） |
-| 渲染 | `render_svg(layout, unit=..., normalize_names=...)` → `String` |
-| 热点 | `top_hotspots(tree, 10)` → `Array[Hotspot]`，`render_hotspots(...)` 直接出文本 |
-| 调用关系 | `find_callers(tree, name)` / `find_callees(tree, name)` → `Array[Relation]` |
-| 差异 | `diff_against(before, after)` + `render_svg`，或 `compute_delta(...)` + `render_delta(...)` |
-| 过滤 | `filter_folded(pattern, text)` → 过滤后的折叠栈文本 |
-
-`WeightUnit::parse("ms")` 可以把命令行里那种单位字符串转成 `WeightUnit`；
-`normalize_name` 单独可用来还原上游未还原的符号名。
-
-完整的 64 个公开 API 见 mooncakes 的文档页，或仓库根目录的 `pkg.generated.mbti`。
-
-## 差异火焰图
-
-对比优化前后（或升级前后）两份剖面，把差异直接画进颜色里：
-
-```powershell
-moon run cmd/main -- diff testdata/demo-baseline.folded testdata/demo.folded -o flame-diff.svg
-```
+演示基线规则：含 `bubble__sort` 的行权重乘 3，含 `build__strings` 的行乘 0.8，
+向下取整，其余不变。不要把该构造基线作为真实性能改善证据。
 
 ![差异火焰图](examples/flame-diff.png)
 
-| 视觉通道 | 含义 |
+### SVG 交互
+
+| 操作 | 行为 |
 | --- | --- |
-| **宽度** | 按**当前**（第二个）剖面 —— 看清现在的时间花在哪 |
-| 🔴 **红** | 该帧**变多了**（劣化），越红变化越大 |
-| 🔵 **蓝** | 该帧**变少了**（改善） |
-| ⚪ **白** | 变化可以忽略（注意不是灰色——灰字在浅色底上读不出来） |
-| **悬停** | 额外显示带符号的变化量 |
+| 悬停 | 帧名、权重、全图占比和变化量 |
+| 单击 | 缩放到该子树；祖先半透明，点击祖先可扩大视图 |
+| Reset Zoom | 恢复原始几何和显示状态 |
+| Ctrl-F / Search | 正则搜索；再次点击重置 |
+| Ctrl-I / ic | 切换是否忽略大小写 |
 
-颜色用全图最大的变化量做归一化——不归一化的话，只要有一处剧变，其它变化在颜色上就会全糊成一片。
+搜索占比相对**当前视图**，命中区间取并集，排除隐藏帧和仅作上下文的祖先。
+无命中显示 0%，无效正则明确提示。窄帧放大后会出现可容纳的标签。
+内嵌脚本需直接打开 SVG 或内联嵌入；`<img>` 引用只显示静态图。
 
-> ⚠️ `testdata/demo-baseline.folded` 是**构造**的基线，仅用于演示与测试差异模式，不是真实采样。
-> 构造规则只有两条，可逐行核对：**含 `bubble__sort` 的行权重 ×3**、**含 `build__strings` 的行权重 ×0.8**
-> （向下取整），其余行不变。真实基线应当来自优化前的那次采样。
+## 作为库使用
 
-## 已知限制
+注册表模块为 `gywcs101/moonflame`；0.2.0 为本次整改准备的版本，正式发布状态以
+[mooncakes 模块页](https://mooncakes.io/docs/gywcs101/moonflame)为准。
+发布后可执行 `moon add gywcs101/moonflame`。
 
-1. **上游采样仅支持 wasm / wasm-gc** 目标，native CPU 采样不可用；
-2. `moon-pprof` 需要 Rust 工具链（**仅采集端**）；**核心库零依赖**，只有命令行入口依赖官方包 `moonbitlang/x` 做文件读写；
-3. 递归程序会产生极深栈（实测最深 7254 层），超过深度上限的部分合并显示为 `(deeper)`；
-4. **上游采样分辨率取决于函数调用频率，而非运行时长**（实测：调用密集约 600 样本/秒，循环密集约 42 样本/秒，相差 14 倍）。因此短于约 25 ms 的函数可能采不到，且**延长运行时间不会提高统计质量**；
-5. 内嵌交互脚本**只在直接打开 SVG 或内联嵌入时执行**；用 `<img>` 引用（GitHub 渲染本 README 即是如此）时浏览器不会运行 SVG 内的脚本，只显示静态外观；
-6. 帧的横轴按**耗时降序**排列（经典实现按名字字母序），这是为了让宽帧聚集在左侧、更易读的刻意选择；
-7. 图中会出现 `(self)` 与 `(deeper)` 两个合成帧：前者是该函数的**自身耗时**，后者是超过深度上限被合并的更深帧。经典实现没有这两个节点，显式画出它们是为了保证「父矩形宽度 = 子矩形宽度之和」——否则图面上会出现空洞。
-
-## 目录结构
+在调用项目的 `moon.pkg` 中添加包导入：
 
 ```text
-.
-├── LICENSE                       MIT
-├── moon.mod / moon.pkg           模块与包配置
-├── pkg.generated.mbti            公开接口（由 moon info 生成，须与源码同步）
-│
-├── folded.mbt                    折叠栈解析
-├── calltree.mbt                  调用树聚合 / 限深合并 / 差异标注
-├── unit.mbt                      权重单位与格式化
-├── names.mbt                     符号名归一化
-├── hotspot.mbt                   Top-N 热点报告
-├── report.mbt                    文本报告（调用关系 / 差异排行 / 栈过滤）
-├── layout.mbt                    矩形布局（火焰图 / 冰柱）
-├── svg.mbt                       SVG 渲染（经典配色 + 内嵌交互脚本）
-├── *_test.mbt                    核心逻辑的测试（166 个用例）
-│
-├── cli/                          命令行参数解析（独立包，可脱离文件系统测试）
-├── cmd/main/                     入口：读文件 → 调用核心库 → 写文件
-│
-├── .github/workflows/ci.yml      持续集成（三平台 × 四后端 + 端到端出图）
-├── demo/                         演示负载（独立模块）
-│   ├── demo.mbt                  四点负载：排序 / 字符串 / 矩阵 / 递归
-│   ├── reproduce.ps1             一键复现（Windows）
-│   └── reproduce.sh              一键复现（macOS / Linux）
-├── examples/                     示例图（SVG 可交互，PNG 供 README 展示）
-└── testdata/                     冻结的样例数据（主样例 + 极限用例 + 上游样例）
+import {
+  "gywcs101/moonflame",
+}
 ```
 
-**分层原则**：根包只做纯计算、零外部依赖；参数解析单独成包以便脱离文件系统测试；
-文件 IO 只出现在入口包——核心逻辑因此可以在没有文件系统的环境（如 wasm）里复用。
+在源码中使用以下完整链路。此段由独立消费项目实际编译和执行：
 
-## 开发
+```moonbit
+///|
+pub fn folded_to_svg(text : String) -> String raise {
+  let parsed = @moonflame.parse_folded(text)
+  if parsed.skipped_lines > 0 { fail("invalid profile") }
+  let tree = @moonflame.aggregate(parsed.samples, max_depth=32)
+  let layout = @moonflame.layout(tree, 1380.0, @moonflame.FRAME_HEIGHT)
+  @moonflame.render_svg(layout)
+}
+```
+
+`ParseResult.diagnostics` 包含一基行号和错误类别。核心入口可能抛出可捕获的
+`ValidationError`（权重、树结构或几何错误），可向上传播或分别捕获。
+库允许空树产生空 SVG；CLI 为避免误解会拒绝没有正权重的剖面。
+
+| API | 参数含义 |
+| --- | --- |
+| `parse_folded(text)` | 有效样本及逐行诊断 |
+| `aggregate(samples, max_depth=...)` | 非负样本聚合 |
+| `layout(tree, width, row_height)` | 内容宽度，不含渲染留白 |
+| `render_svg(layout)` | 生成完整 SVG |
+| `top_hotspots(tree, top)` | 按自身权重聚合热点 |
+| `find_callers(tree, name)` / `find_callees(tree, name)` | 调用关系覆盖统计 |
+| `diff_against(current, baseline)` | 当前树的累计与自身变化 |
+| `compute_delta(before, after, top)` | 函数自身权重差异 |
+| `filter_folded(text, pattern)` | 保留匹配栈的原始权重 |
+
+完整签名见 `pkg.generated.mbti`。版本迁移与行为调整见 [MIGRATION.md](MIGRATION.md)。
+Double 权重的整数精度受 IEEE-754 限制，大于 2^53 的整数不保证精确表示。
+
+## 采样自己的程序
+
+安装可选采样器 [mizchi/moon-pprof](https://github.com/mizchi/moon-pprof)，
+采样端需要它的运行环境；渲染器不依赖采样器。以下为用 0.1.3 验证的 wasm-gc 链路：
 
 ```bash
-moon check --target all --deny-warn   # 类型检查（四后端，警告即失败）
-moon build --target all --deny-warn   # 构建（四后端）
-moon test  --target all --deny-warn   # 全部测试（166 个 × 四后端）
-moon info && moon fmt                 # 提交前更新接口并格式化
-moon run cmd/main -- --help
+moon build --target wasm-gc
+moon-pprof profile --wasm-gc _build/wasm-gc/debug/build/cmd/main/main.wasm --iterations 3 --out app.pb.gz
+moon-pprof pprof2folded app.pb.gz app.folded
+moon run cmd/main -- app.folded --out flame.svg
 ```
+
+项目内演示负载使用 `powershell demo/reproduce.ps1` 或 `bash demo/reproduce.sh`。
+工具需位于 PATH。新的采样结果会变化，冻结测试数据不应自动覆盖。
+0.1.3 历史实验中，调用密集与循环密集负载的采样密度有明显差异；该观察受采样器、
+负载与环境影响，不能据此断言所有短函数都采不到或延长运行永远无益。
+其他后端采样能力以所用上游版本的文档为准。
+
+## 开发与复验
+
+```bash
+moon check --target all --deny-warn
+moon build --target all --deny-warn
+moon test --target all --deny-warn
+moon fmt --check
+moon info
+python scripts/test-cli.py
+python scripts/test-cli.py --target js
+python scripts/test-cli.py --target wasm
+python scripts/test-consumer.py
+python scripts/verify-fixtures.py
+npm ci --prefix tests/browser --ignore-scripts
+node tests/browser/node_modules/playwright/cli.js install chromium
+node tests/browser/test.cjs
+moon package
+python scripts/verify-package.py
+```
+
+`demo/` 是独立模块，在该目录另行运行 `moon check --deny-warn` 和 `moon test --deny-warn`。
+CI 保留三平台四后端检查，并增加真实进程、浏览器交互、外部消费和分发材料检查。
+浏览器测试使用 Node 20+ 和锁定的 Playwright 开发依赖，不进入核心库运行依赖。
+可通过 `PLAYWRIGHT_CHROMIUM_EXECUTABLE` 指定已有 Chromium。
+
+核心文件按解析、聚合、校验、布局、渲染、报告和命令行分层；`cmd/main` 是 IO 入口。
+许可证说明、复现脚本和测试脚本随仓库提供。整改对照和验证边界见
+[REMEDIATION.md](REMEDIATION.md)。
 
 ## 参考与许可
 
-本项目为**原创项目**，未复制任何第三方源码。
-
-- 火焰图（Flame Graph）的概念与折叠栈格式由 **Brendan Gregg** 提出；
-- 渲染外观与交互行为对齐 [brendangregg/FlameGraph](https://github.com/brendangregg/FlameGraph) 的 `flamegraph.pl`：**暖色调色板的数值公式、差异配色规则、以及悬停 / 点击缩放 / Ctrl-F 搜索的交互语义**均与之兼容。
-  ⚠️ 该项目采用 **CDDL-1.0**——一种**文件级弱 copyleft**，不是宽松许可（它与 GPL 明确不兼容）。
-  为避免任何许可证混用问题，本项目**其源码一行未复制**，只对齐功能规格，MoonBit 与 JavaScript 实现全部原创（与经典实现的偏离项见[已知限制](#已知限制)）；
-- 可选的上游数据来源：[mizchi/moon-pprof](https://github.com/mizchi/moon-pprof)（Apache-2.0），负责采样与格式归一；
-- 渲染正确性以 [google/pprof](https://github.com/google/pprof)（Apache-2.0）作为交叉验证基准；
-- `testdata/official-sample.wasm` 来自 moon-pprof 仓库的样例（Apache-2.0）。
-
-本项目使用 [MIT License](LICENSE)。
+原创部分采用 [MIT](LICENSE)。外观、折叠栈与交互语义参考
+[FlameGraph](https://github.com/brendangregg/FlameGraph)（CDDL-1.0），未复制其源码。
+上游样例及相关衍生数据随附 [Apache-2.0 完整许可证](LICENSES/Apache-2.0.txt)。
+详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

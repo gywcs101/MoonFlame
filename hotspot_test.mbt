@@ -5,7 +5,7 @@
 /// 以及排序与截断的确定性。
 
 ///|
-fn hotspots(text : String, top : Int) -> Array[@moonflame.Hotspot] {
+fn hotspots(text : String, top : Int) -> Array[@moonflame.Hotspot] raise {
   let tree = tree_of(text, 0)
   @moonflame.top_hotspots(tree, top)
 }

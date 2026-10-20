@@ -33,7 +33,7 @@ fn coverage_problems(rects : Array[@moonflame.Rect]) -> Array[String] {
       for kid in kids {
         sum = sum + kid.width
       }
-      if sum - parent.width > 1.0e-6 {
+      if (sum - parent.width).abs() > 1.0e-6 {
         out.push(
           "children of " +
           parent.name +

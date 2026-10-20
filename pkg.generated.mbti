@@ -8,9 +8,9 @@ pub const CANVAS_XPAD : Double = 10.0
 
 pub const FRAME_HEIGHT : Double = 16.0
 
-pub fn aggregate(Array[Sample], max_depth? : Int) -> CallTree
+pub fn aggregate(Array[Sample], max_depth? : Int) -> CallTree raise ValidationError
 
-pub fn compute_delta(CallTree, CallTree, Int) -> Array[DeltaEntry]
+pub fn compute_delta(CallTree, CallTree, Int) -> Array[DeltaEntry] raise ValidationError
 
 pub fn deeper_placeholder() -> String
 
@@ -18,7 +18,7 @@ pub fn default_font_size() -> Double
 
 pub fn default_min_width() -> Double
 
-pub fn diff_against(CallTree, CallTree) -> CallTree
+pub fn diff_against(CallTree, CallTree) -> CallTree raise ValidationError
 
 pub fn fill_for_delta(Double, Double) -> String
 
@@ -26,15 +26,17 @@ pub fn fill_of(String) -> String
 
 pub fn filter_folded(String, String) -> String
 
-pub fn find_callees(CallTree, String) -> Array[Relation]
+pub fn find_callees(CallTree, String) -> Array[Relation] raise ValidationError
 
-pub fn find_callers(CallTree, String) -> Array[Relation]
+pub fn find_callers(CallTree, String) -> Array[Relation] raise ValidationError
 
 pub fn format_signed_weights(Double, WeightUnit) -> String
 
 pub fn format_weight(Double, WeightUnit) -> String
 
-pub fn layout(CallTree, Double, Double, inverted? : Bool) -> Layout
+pub fn has_matching_frame(CallTree, String) -> Bool raise ValidationError
+
+pub fn layout(CallTree, Double, Double, inverted? : Bool) -> Layout raise ValidationError
 
 pub fn normalize_name(String) -> String
 
@@ -46,17 +48,24 @@ pub fn render_delta(Array[DeltaEntry], Double, Double, WeightUnit) -> String
 
 pub fn render_hotspots(Array[Hotspot], Double, WeightUnit) -> String
 
-pub fn render_relations(Array[Relation], String, String, WeightUnit) -> String
+pub fn render_relations(Array[Relation], String, String, WeightUnit, matched? : Bool) -> String
 
-pub fn render_svg(Layout, min_width? : Double, font_size? : Double, show_labels? : Bool, unit? : WeightUnit, normalize_names? : Bool) -> String
+pub fn render_svg(Layout, min_width? : Double, font_size? : Double, show_labels? : Bool, unit? : WeightUnit, normalize_names? : Bool) -> String raise ValidationError
 
 pub fn self_placeholder() -> String
 
-pub fn top_hotspots(CallTree, Int) -> Array[Hotspot]
+pub fn top_hotspots(CallTree, Int) -> Array[Hotspot] raise ValidationError
+
+pub fn validate_tree(CallTree) -> Unit raise ValidationError
 
 pub fn version() -> String
 
 // Errors
+pub(all) suberror ValidationError {
+  InvalidWeight(String)
+  InvalidTree(String)
+  InvalidGeometry(String)
+}
 
 // Types and methods
 pub struct CallTree {
@@ -105,6 +114,7 @@ pub struct Node {
   value : Double
   children : Array[Node]
   delta : Double?
+  self_delta : Double?
 } derive(Eq)
 pub fn Node::child(Self, String) -> Self?
 pub fn Node::equal(Self, Self) -> Bool
@@ -112,9 +122,26 @@ pub fn Node::not_equal(Self, Self) -> Bool
 pub fn Node::self_ratio(Self, Double) -> Double
 pub fn Node::self_time(Self) -> Double
 
+pub struct ParseIssue {
+  line : Int
+  kind : ParseIssueKind
+} derive(Eq)
+pub fn ParseIssue::equal(Self, Self) -> Bool
+pub fn ParseIssue::not_equal(Self, Self) -> Bool
+
+pub(all) enum ParseIssueKind {
+  MissingWeight
+  InvalidNumber
+  NonFiniteWeight
+  NegativeWeight
+} derive(Eq)
+pub fn ParseIssueKind::equal(Self, Self) -> Bool
+pub fn ParseIssueKind::not_equal(Self, Self) -> Bool
+
 pub struct ParseResult {
   samples : Array[Sample]
   skipped_lines : Int
+  diagnostics : Array[ParseIssue]
 } derive(Eq)
 pub fn ParseResult::equal(Self, Self) -> Bool
 pub fn ParseResult::not_equal(Self, Self) -> Bool

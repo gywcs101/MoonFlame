@@ -20,6 +20,8 @@ pub struct Node {
   children : Array[Node]
   /// 差异模式下的变化量（本剖面相对基线的差值）；普通模式下为 `None`
   delta : Double?
+  /// Change in this frame's own weight, calculated before dropping baseline-only children.
+  self_delta : Double?
 } derive(Eq)
 
 ///|
@@ -53,11 +55,12 @@ priv struct Builder {
   name : String
   mut value : Double
   children : Map[String, Builder]
+  mut result : Node?
 }
 
 ///|
 fn Builder::new(name : String) -> Builder {
-  { name, value: 0.0, children: Map([]), }
+  { name, value: 0.0, children: Map([]), result: None, }
 }
 
 ///|
@@ -98,18 +101,17 @@ fn insert_path(
   weight : Double,
   max_depth : Int,
 ) -> Unit {
-  node.value = node.value + weight
-  if index >= frames.length() {
-    return
+  let mut current = node
+  current.value = current.value + weight
+  for i = index; i < frames.length(); i = i + 1 {
+    if max_depth > 0 && i >= max_depth {
+      let deeper = child_of(current, deeper_placeholder())
+      deeper.value = deeper.value + weight
+      return
+    }
+    current = child_of(current, frames[i])
+    current.value = current.value + weight
   }
-  if max_depth > 0 && index >= max_depth {
-    // 已经越过深度上限：把这一整段链的价值累加进合成节点，不再逐帧展开
-    let deeper = child_of(node, deeper_placeholder())
-    deeper.value = deeper.value + weight
-    return
-  }
-  let child = child_of(node, frames[index])
-  insert_path(child, frames, index + 1, weight, max_depth)
 }
 
 ///|
@@ -127,12 +129,36 @@ fn compare_nodes(a : Node, b : Node) -> Int {
 ///|
 /// 把构建期节点物化成不可变、已排序的 `Node`。
 fn Builder::materialize(self : Builder) -> Node {
-  let children : Array[Node] = []
-  for pair in self.children {
-    children.push(pair.1.materialize())
+  let pending : Array[(Builder, Bool)] = [(self, false)]
+  while pending.length() > 0 {
+    let (builder, visited) = pending[pending.length() - 1]
+    ignore(pending.pop())
+    if !visited {
+      pending.push((builder, true))
+      for pair in builder.children {
+        pending.push((pair.1, false))
+      }
+    } else {
+      let children : Array[Node] = []
+      for pair in builder.children {
+        if pair.1.result is Some(child) {
+          children.push(child)
+        }
+      }
+      children.sort_by(compare_nodes)
+      builder.result = Some({
+        name: builder.name,
+        value: builder.value,
+        children,
+        delta: None,
+        self_delta: None,
+      })
+    }
   }
-  children.sort_by(compare_nodes)
-  { name: self.name, value: self.value, children, delta: None, }
+  match self.result {
+    Some(node) => node
+    None => abort("materialization failed")
+  }
 }
 
 ///|
@@ -148,25 +174,56 @@ fn index_by_name(nodes : Array[Node]) -> Map[String, Node] {
 ///|
 /// 递归标注变化量：以 `baseline` 为基线，给 `nodes` 中每个节点算出差值。
 fn annotate(nodes : Array[Node], baseline : Array[Node]) -> Array[Node] {
-  let index = index_by_name(baseline)
-  let out : Array[Node] = []
-  for node in nodes {
-    let matched = index.get(node.name)
-    let base_value = match matched {
-      Some(other) => other.value
-      None => 0.0
-    }
-    let base_children = match matched {
+  // Flatten first, then rebuild bottom-up without recursive host calls.
+  let flat : Array[(Node, Node?, Int)] = []
+  let pending : Array[(Node, Node?, Int)] = []
+  let baseline_index = index_by_name(baseline)
+  for i = nodes.length() - 1; i >= 0; i = i - 1 {
+    pending.push((nodes[i], baseline_index.get(nodes[i].name), -1))
+  }
+  while pending.length() > 0 {
+    let task = pending[pending.length() - 1]
+    ignore(pending.pop())
+    let (node, base, _) = task
+    let idx = flat.length()
+    flat.push(task)
+    let base_children = match base {
       Some(other) => other.children
       None => []
     }
-    out.push({
+    let index = index_by_name(base_children)
+    for i = node.children.length() - 1; i >= 0; i = i - 1 {
+      let child = node.children[i]
+      pending.push((child, index.get(child.name), idx))
+    }
+  }
+  let children : Array[Array[Node]] = Array::makei(flat.length(), fn(_) { [] })
+  let out : Array[Node] = []
+  for i = flat.length() - 1; i >= 0; i = i - 1 {
+    let (node, base, parent) = flat[i]
+    let base_value = match base {
+      Some(other) => other.value
+      None => 0.0
+    }
+    let base_self = match base {
+      Some(other) => other.self_time()
+      None => 0.0
+    }
+    children[i].sort_by(compare_nodes)
+    let annotated : Node = {
       name: node.name,
       value: node.value,
+      children: children[i],
       delta: Some(node.value - base_value),
-      children: annotate(node.children, base_children),
-    })
+      self_delta: Some(node.self_time() - base_self),
+    }
+    if parent < 0 {
+      out.push(annotated)
+    } else {
+      children[parent].push(annotated)
+    }
   }
+  out.sort_by(compare_nodes)
   out
 }
 
@@ -174,9 +231,14 @@ fn annotate(nodes : Array[Node], baseline : Array[Node]) -> Array[Node] {
 /// 把两份剖面叠加，给 `tree` 的每个节点标注相对 `baseline` 的变化量。
 ///
 /// **宽度仍按 `tree`（当前剖面）计算**，因此只在基线里出现的帧不会显示——
-/// 这与参考实现 `difffolded.pl` 的取舍一致（它的建议是交换两份文件再生成一张，
+/// 这与参考实现 `difffolded.pl` 的取舍一致（可交换两份文件再生成一张，
 /// 从另一个方向看消失的帧）。
-pub fn diff_against(tree : CallTree, baseline : CallTree) -> CallTree {
+pub fn diff_against(
+  tree : CallTree,
+  baseline : CallTree,
+) -> CallTree raise ValidationError {
+  validate_tree(tree)
+  validate_tree(baseline)
   { roots: annotate(tree.roots, baseline.roots), total: tree.total, }
 }
 
@@ -185,26 +247,18 @@ pub fn diff_against(tree : CallTree, baseline : CallTree) -> CallTree {
 ///
 /// 不做归一化的话，只要有一处剧变，其它所有变化在颜色上就全糊成一片。
 pub fn CallTree::max_delta(self : CallTree) -> Double {
+  let pending = self.roots.copy()
   let mut largest = 0.0
-  for root in self.roots {
-    let magnitude = max_delta_of(root)
-    if magnitude > largest {
-      largest = magnitude
+  while pending.length() > 0 {
+    let node = pending[pending.length() - 1]
+    ignore(pending.pop())
+    for delta in [node.delta, node.self_delta] {
+      if delta is Some(value) {
+        largest = larger(largest, value.abs())
+      }
     }
-  }
-  largest
-}
-
-///|
-fn max_delta_of(node : Node) -> Double {
-  let mut largest = match node.delta {
-    Some(value) => if value < 0.0 { -value } else { value }
-    None => 0.0
-  }
-  for child in node.children {
-    let magnitude = max_delta_of(child)
-    if magnitude > largest {
-      largest = magnitude
+    for child in node.children {
+      pending.push(child)
     }
   }
   largest
@@ -214,19 +268,38 @@ fn max_delta_of(node : Node) -> Double {
 /// 把样本聚合成调用树。
 ///
 /// `max_depth` 限制每个根节点下保留的帧数：超出的部分会被合并进
-/// `(deeper)` 合成节点（见 `insert_path`）。`max_depth <= 0` 或不传表示不限制。
+/// `(deeper)` 合成节点（见 `insert_path`）。`max_depth = 0` 或不传表示不限制。
 ///
 /// 真实采样数据里递归栈可达数千层（实测最深 7254 层），按每层一行渲染会得到
 /// 十几万像素高的图，因此渲染前必须限深——这是 CLI 默认行为。
-pub fn aggregate(samples : Array[Sample], max_depth? : Int) -> CallTree {
+pub fn aggregate(
+  samples : Array[Sample],
+  max_depth? : Int,
+) -> CallTree raise ValidationError {
   let limit = match max_depth {
     Some(depth) => depth
     None => 0
+  }
+  if limit < 0 {
+    raise InvalidTree("max_depth must be nonnegative")
   }
   // 虚拟入口：只作为插入起点，不进入结果，避免把「取或建」逻辑写两遍
   let entry = Builder::new("")
   let mut total = 0.0
   for sample in samples {
+    check_weight(sample.weight, "sample")
+    if sample.frames.length() == 0 {
+      raise InvalidTree("empty sample stack")
+    }
+    for name in sample.frames {
+      if name == "" {
+        raise InvalidTree("empty frame name")
+      }
+    }
+    if sample.weight == 0.0 {
+      continue
+    }
+    check_weight(total + sample.weight, "accumulated total")
     insert_path(entry, sample.frames, 0, sample.weight, limit)
     total = total + sample.weight
   }
@@ -248,7 +321,12 @@ pub fn Node::self_time(self : Node) -> Double {
   for child in self.children {
     children_total = children_total + child.value
   }
-  self.value - children_total
+  let own = self.value - children_total
+  if own < 0.0 && own.abs() <= tolerance(self.value) {
+    0.0
+  } else {
+    own
+  }
 }
 
 ///|

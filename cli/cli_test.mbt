@@ -62,11 +62,14 @@ test "reads the weight unit" {
 }
 
 ///|
-test "falls back to nanoseconds on an unknown unit" {
-  assert_true(
-    config_of(["demo.folded", "--unit", "furlongs"]).unit ==
-    @moonflame.Nanoseconds,
-  )
+test "rejects unknown units" {
+  let bad = try {
+    ignore(config_of(["demo.folded", "--unit", "furlongs"]))
+    false
+  } catch {
+    _ => true
+  }
+  assert_true(bad)
 }
 
 ///|
@@ -76,12 +79,25 @@ test "reads the inverted flag" {
 }
 
 ///|
-test "falls back to defaults on an unparsable number" {
-  let config = config_of([
-    "demo.folded", "--max-depth", "abc", "--width", "wide",
-  ])
-  assert_eq(config.max_depth, @cli.DEFAULT_MAX_DEPTH)
-  assert_eq(config.width, @cli.DEFAULT_WIDTH)
+test "rejects invalid numeric options" {
+  for
+    args in [
+      ["demo.folded", "--max-depth", "abc"],
+      ["demo.folded", "--width", "NaN"],
+      ["demo.folded", "--width", "Infinity"],
+      ["demo.folded", "--width", "20"],
+      ["demo.folded", "--max-depth", "-1"],
+      ["hotspots", "demo.folded", "--top", "-1"],
+      ["filter", "x", "demo.folded", "--max-depth", "2"],
+    ] {
+    let bad = try {
+      ignore(config_of(args))
+      false
+    } catch {
+      _ => true
+    }
+    assert_true(bad)
+  }
 }
 
 ///|

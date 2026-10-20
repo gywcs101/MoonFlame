@@ -5,7 +5,7 @@
 /// 宽度始终按「当前」剖面走，因此只在基线里出现的帧不会显示。
 
 ///|
-fn diff_of(before : String, after : String) -> @moonflame.CallTree {
+fn diff_of(before : String, after : String) -> @moonflame.CallTree raise {
   @moonflame.diff_against(tree_of(after, 0), tree_of(before, 0))
 }
 

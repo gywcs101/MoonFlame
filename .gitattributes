@@ -10,3 +10,6 @@
 # 脚本固定使用 LF
 *.ps1 text eol=lf
 *.sh  text eol=lf
+LICENSES/* text eol=lf
+*.py text eol=lf
+*.cjs text eol=lf

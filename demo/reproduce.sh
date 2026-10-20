@@ -13,13 +13,8 @@
 set -euo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-root="$(cd "$here/.." && pwd)"
 
-# 工作区若自带 Rust 工具链（含 moon-pprof），优先用它
-if [ -d "$root/_toolchain/cargo/bin" ]; then
-  PATH="$root/_toolchain/cargo/bin:$PATH"
-fi
-
+# moon 与 moon-pprof 必须位于 PATH。
 if ! command -v moon-pprof >/dev/null 2>&1; then
   echo "错误：找不到 moon-pprof。" >&2
   echo "它只在「采集自己的程序」时需要；渲染器本身不需要。安装方式见其仓库说明。" >&2

@@ -48,7 +48,7 @@ fn collect_problems(
 
 ///|
 /// 对一棵树做全面体检，返回所有违规描述。
-fn problems_of(text : String, max_depth : Int) -> Array[String] {
+fn problems_of(text : String, max_depth : Int) -> Array[String] raise {
   let tree = @moonflame.aggregate(
     @moonflame.parse_folded(text).samples,
     max_depth~,
