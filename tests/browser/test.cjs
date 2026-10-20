@@ -9,7 +9,26 @@ const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '../..');
 const dir = path.join(root, '_build/browser');
 fs.mkdirSync(dir, { recursive: true });
-const cli = path.join(root, '_build/native/debug/build/cmd/main', process.platform === 'win32' ? 'main.exe' : 'main');
+function findNativeCli() {
+  const wanted = process.platform === 'win32' ? 'main.exe' : 'main';
+  const scan = directory => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const candidate = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        const found = scan(candidate);
+        if (found) return found;
+      } else if (entry.isFile() && entry.name === wanted &&
+                 candidate.includes(`${path.sep}cmd${path.sep}main${path.sep}`)) {
+        return candidate;
+      }
+    }
+    return undefined;
+  };
+  const found = scan(path.join(root, '_build', 'native'));
+  if (!found) throw new Error('Moon CLI native artifact was not found under _build/native');
+  return found;
+}
+const cli = findNativeCli();
 function render(name, data, inverted = false) {
   const input = path.join(dir, name + '.folded');
   const output = path.join(dir, name + '.svg');
