@@ -14,6 +14,7 @@ _build/
 target/
 .mooncakes/
 .moonagent/
+node_modules/
 
 # ---------- 面向开发者本人的说明与工作文件（用户不需要）----------
 # docs/REQUIREMENTS.md        ：赛题要求与逐条验收对照（含自检清单）

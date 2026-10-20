@@ -16,23 +16,14 @@ text { font-family:Verdana; font-size:12px; fill:rgb(0,0,0); }
 .parent { opacity:0.5; }
 </style>
 <script type="text/ecmascript"><![CDATA[
+var XPAD = 10; var FONTSIZE = 12; var FONTWIDTH = 0.6; var INVERTED = false; var SEARCHCOLOR = "rgb(230,0,230)";
 "use strict";
 var SVG, FRAMES, DETAILS, SEARCHBTN, UNZBTN, MATCHED, ICBTN;
 var orig = [], searching = false, term = null, ignorecase = false;
 var canvasW = 0;
-
-var XPAD = 10;
-var FONTSIZE = 12;
-var FONTWIDTH = 0.6;
-var INVERTED = false;
-var SEARCHCOLOR = "rgb(230,0,230)";
-var NAMETYPE = "Function:";
-
 function init() {
   SVG = document.getElementsByTagName("svg")[0];
-  var box = document.getElementById("frames");
-  if (!box) return;
-  FRAMES = box.children;
+  FRAMES = document.getElementById("frames").children;
   DETAILS = document.getElementById("details").firstChild;
   SEARCHBTN = document.getElementById("search");
   UNZBTN = document.getElementById("unzoom");
@@ -41,168 +32,111 @@ function init() {
   canvasW = SVG.width.baseVal.value;
   for (var i = 0; i < FRAMES.length; i++) {
     var r = rectOf(FRAMES[i]);
-    orig.push({ x: num(r, "x"), y: num(r, "y"), w: num(r, "width"),
-                fill: r.getAttribute("fill") });
+    orig.push({x:num(r,"x"), y:num(r,"y"), w:num(r,"width"), fill:r.getAttribute("fill")});
   }
   wire();
 }
-
-function num(el, attr) { return parseFloat(el.getAttribute(attr)); }
+function num(el, a) { return parseFloat(el.getAttribute(a)); }
 function rectOf(g) { return g.querySelector("rect"); }
 function textOf(g) { return g.querySelector("text"); }
 function nameOf(g) { return g.getAttribute("data-name") || ""; }
-function indexOf(g) {
-  for (var i = 0; i < FRAMES.length; i++) if (FRAMES[i] === g) return i;
-  return -1;
+function indexOf(g) { return Array.prototype.indexOf.call(FRAMES,g); }
+function groupOf(n) {
+  while(n && n.parentNode && n.parentNode.id !== "frames") n=n.parentNode;
+  return n && n.parentNode && n.parentNode.id === "frames" ? n : null;
 }
-function groupOf(node) {
-  while (node && node.parentNode && node.parentNode.id !== "frames") {
-    node = node.parentNode;
-  }
-  return node && node.parentNode && node.parentNode.id === "frames" ? node : null;
+function fitText(g,x,w) {
+  var t=textOf(g); if(!t) return;
+  var full=nameOf(g), room=w-6, chars=Math.floor(room/(FONTSIZE*FONTWIDTH));
+  var points=Array.from(full);
+  t.textContent=chars<2 ? "" : chars>=points.length ? full : points.slice(0,chars-2).join("")+"..";
 }
-
-function setGeom(g, x, w) {
-  var r = rectOf(g), t = textOf(g);
-  r.setAttribute("x", x);
-  r.setAttribute("width", w);
-  if (t) t.setAttribute("x", x + 3);
-  fitText(g, x, w);
+function setGeom(g,x,w) {
+  var r=rectOf(g),t=textOf(g); r.setAttribute("x",x); r.setAttribute("width",w);
+  if(t) t.setAttribute("x",x+3); fitText(g,x,w);
 }
-
-// 窄框里写字会溢出，放不下就改成截断加省略号
-function fitText(g, x, w) {
-  var t = textOf(g);
-  if (!t) return;
-  var full = nameOf(g);
-  var room = w - 6;
-  if (room < 2 * FONTSIZE * FONTWIDTH) { t.textContent = ""; return; }
-  var chars = Math.floor(room / (FONTSIZE * FONTWIDTH));
-  t.textContent = chars >= full.length ? full : full.substring(0, chars - 2) + "..";
-}
-
 function applyZoom(i) {
-  var base = orig[i];
-  var xmin = base.x, xmax = base.x + base.w;
-  var ratio = (canvasW - 2 * XPAD) / (xmax - xmin);
-  var fudge = 0.0001;
+  if(i<0 || orig[i].w<=0) return;
+  var base=orig[i], xmin=base.x, xmax=base.x+base.w;
+  var ratio=(canvasW-2*XPAD)/base.w, fudge=0.0001;
   UNZBTN.classList.remove("hide");
-  for (var k = 0; k < FRAMES.length; k++) {
-    var g = FRAMES[k], o = orig[k];
-    var isAncestor = INVERTED ? (o.y < base.y) : (o.y > base.y);
-    if (isAncestor) {
-      if (o.x <= xmin + fudge && o.x + o.w + fudge >= xmax) {
-        g.classList.add("parent");
-        setGeom(g, XPAD, canvasW - 2 * XPAD);
-      } else { g.classList.add("hide"); }
-    } else if (o.x + fudge < xmin || o.x >= xmax - fudge) {
-      g.classList.add("hide");
-    } else {
-      setGeom(g, (o.x - xmin) * ratio + XPAD, o.w * ratio);
-    }
+  for(var k=0;k<FRAMES.length;k++) {
+    var g=FRAMES[k],o=orig[k];
+    g.classList.remove("hide"); g.classList.remove("parent");
+    var ancestor=INVERTED ? o.y<base.y : o.y>base.y;
+    if(ancestor) {
+      if(o.x<=xmin+fudge && o.x+o.w+fudge>=xmax) {
+        g.classList.add("parent"); setGeom(g,XPAD,canvasW-2*XPAD);
+      } else g.classList.add("hide");
+    } else if(o.x<xmin-fudge || o.x+o.w>xmax+fudge) g.classList.add("hide");
+    else setGeom(g,(o.x-xmin)*ratio+XPAD,o.w*ratio);
   }
-  if (term !== null) doSearch();
+  if(term!==null) doSearch();
 }
-
 function resetZoom() {
   UNZBTN.classList.add("hide");
-  for (var k = 0; k < FRAMES.length; k++) {
-    FRAMES[k].classList.remove("parent");
-    FRAMES[k].classList.remove("hide");
-    setGeom(FRAMES[k], orig[k].x, orig[k].w);
+  for(var k=0;k<FRAMES.length;k++) {
+    FRAMES[k].classList.remove("hide"); FRAMES[k].classList.remove("parent");
+    setGeom(FRAMES[k],orig[k].x,orig[k].w);
   }
-  if (term !== null) doSearch();
+  if(term!==null) doSearch();
 }
-
 function clearHighlight() {
-  for (var k = 0; k < FRAMES.length; k++) {
-    rectOf(FRAMES[k]).setAttribute("fill", orig[k].fill);
-  }
+  for(var k=0;k<FRAMES.length;k++) rectOf(FRAMES[k]).setAttribute("fill",orig[k].fill);
 }
-
 function doSearch() {
-  if (term === null) return;
-  var re;
-  try { re = new RegExp(term, ignorecase ? "i" : ""); }
-  catch (e) { return; }
+  if(term===null) return;
   clearHighlight();
-  var spans = [], maxw = 0, hit = false;
-  for (var k = 0; k < FRAMES.length; k++) {
-    var g = FRAMES[k], r = rectOf(g);
-    var w = num(r, "width");
-    if (w > maxw) maxw = w;
-    if (re.test(nameOf(g))) {
-      r.setAttribute("fill", SEARCHCOLOR);
-      spans.push({ x: num(r, "x"), w: w });
-      hit = true;
-    }
-  }
-  if (!hit) return;
-  searching = true;
-  SEARCHBTN.classList.add("show");
-  SEARCHBTN.firstChild.nodeValue = "Reset Search";
-  // 命中率按「垂直不重叠」累计：同一列只取最宽的那帧，否则父子会重复计入
-  spans.sort(function (a, b) { return a.x - b.x; });
-  var count = 0, lastx = -1, lastw = 0, fudge = 0.0001;
-  for (var j = 0; j < spans.length; j++) {
-    if (spans[j].x >= lastx + lastw - fudge) {
-      count += spans[j].w; lastx = spans[j].x; lastw = spans[j].w;
-    }
-  }
-  var pct = 100 * count / maxw;
+  searching=true; SEARCHBTN.classList.add("show"); SEARCHBTN.firstChild.nodeValue="Reset Search";
   MATCHED.classList.remove("hide");
-  MATCHED.firstChild.nodeValue = "Matched: " + (pct === 100 ? 100 : pct.toFixed(1)) + "%";
-}
-
-function resetSearch() {
-  searching = false;
-  term = null;
-  clearHighlight();
-  SEARCHBTN.classList.remove("show");
-  SEARCHBTN.firstChild.nodeValue = "Search";
-  MATCHED.classList.add("hide");
-  MATCHED.firstChild.nodeValue = "";
-}
-
-function searchPrompt() {
-  if (searching) { resetSearch(); return; }
-  var t = prompt("Enter a search term (regexp allowed, eg: ^moon)" +
-    (ignorecase ? ", ignoring case" : "") +
-    "\nPress Ctrl-i to toggle case sensitivity", "");
-  if (t === null) return;
-  term = t;
-  doSearch();
-}
-
-function toggleIgnoreCase() {
-  ignorecase = !ignorecase;
-  if (ignorecase) ICBTN.classList.add("show"); else ICBTN.classList.remove("show");
-  if (searching) doSearch();
-}
-
-function wire() {
-  window.addEventListener("click", function (e) {
-    if (e.target.id === "unzoom") { resetZoom(); return; }
-    if (e.target.id === "search") { searchPrompt(); return; }
-    if (e.target.id === "ignorecase") { toggleIgnoreCase(); return; }
-    var g = groupOf(e.target);
-    if (g) applyZoom(indexOf(g));
-  }, false);
-  window.addEventListener("mouseover", function (e) {
-    var g = groupOf(e.target);
-    if (g) DETAILS.nodeValue = NAMETYPE + " " + g.querySelector("title").textContent;
-  }, false);
-  window.addEventListener("mouseout", function (e) {
-    var g = groupOf(e.target);
-    if (g) DETAILS.nodeValue = " ";
-  }, false);
-  window.addEventListener("keydown", function (e) {
-    if (e.keyCode === 114 || (e.ctrlKey && e.keyCode === 70)) {
-      e.preventDefault(); searchPrompt();
-    } else if (e.ctrlKey && e.keyCode === 73) {
-      e.preventDefault(); toggleIgnoreCase();
+  var re;
+  try { re=new RegExp(term,ignorecase?"i":""); }
+  catch(e) { MATCHED.firstChild.nodeValue="Invalid regular expression"; return; }
+  var spans=[];
+  for(var k=0;k<FRAMES.length;k++) {
+    var g=FRAMES[k];
+    if(g.classList.contains("hide") || g.classList.contains("parent")) continue;
+    if(re.test(nameOf(g))) {
+      var r=rectOf(g), x=num(r,"x"), right=x+num(r,"width");
+      rectOf(g).setAttribute("fill",SEARCHCOLOR);
+      spans.push({x:Math.max(XPAD,x),right:Math.min(canvasW-XPAD,right)});
     }
-  }, false);
+  }
+  spans.sort(function(a,b){return a.x-b.x || b.right-a.right;});
+  var count=0,end=XPAD;
+  for(var j=0;j<spans.length;j++) {
+    var s=spans[j];
+    if(s.right>end) { count+=s.right-Math.max(end,s.x); end=s.right; }
+  }
+  var pct=Math.max(0,Math.min(100,100*count/(canvasW-2*XPAD)));
+  MATCHED.firstChild.nodeValue="Matched: "+(pct===100?100:pct.toFixed(1))+"%";
+}
+function resetSearch() {
+  searching=false; term=null; clearHighlight(); SEARCHBTN.classList.remove("show");
+  SEARCHBTN.firstChild.nodeValue="Search"; MATCHED.classList.add("hide"); MATCHED.firstChild.nodeValue=" ";
+}
+function searchPrompt() {
+  if(searching) {resetSearch();return;}
+  var t=prompt("Enter a regular expression; Ctrl-I toggles case sensitivity","");
+  if(t===null) return; term=t;doSearch();
+}
+function toggleIgnoreCase() {
+  ignorecase=!ignorecase; ICBTN.classList.toggle("show",ignorecase);
+  if(term!==null) doSearch();
+}
+function wire() {
+  window.addEventListener("click",function(e){
+    if(e.target.id==="unzoom") {resetZoom();return;}
+    if(e.target.id==="search") {searchPrompt();return;}
+    if(e.target.id==="ignorecase") {toggleIgnoreCase();return;}
+    var g=groupOf(e.target);if(g) applyZoom(indexOf(g));
+  });
+  window.addEventListener("mouseover",function(e){var g=groupOf(e.target);if(g) DETAILS.nodeValue="Function: "+g.querySelector("title").textContent;});
+  window.addEventListener("mouseout",function(e){if(groupOf(e.target)) DETAILS.nodeValue=" ";});
+  window.addEventListener("keydown",function(e){
+    if(e.keyCode===114 || (e.ctrlKey && e.keyCode===70)){e.preventDefault();searchPrompt();}
+    else if(e.ctrlKey && e.keyCode===73){e.preventDefault();toggleIgnoreCase();}
+  });
 }
 ]]></script>
 <rect x="0" y="0" width="1400" height="278" fill="url(#background)"/>
@@ -228,50 +162,50 @@ function wire() {
 <g data-name="moonflame::demo::walk_tree"><title>moonflame::demo::walk_tree — 410.23 ms (21.7%)&#10;原名: moonflame::demo::walk__tree</title><rect x="10" y="36" width="299" height="15" fill="rgb(254,227,54)" rx="2" ry="2"/><text x="13" y="49">moonflame::demo::walk_tree</text></g>
 <g data-name="(self)"><title>(self) — 248.02 ms (13.1%)</title><rect x="309" y="36" width="180.8" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="312" y="49">(self)</text></g>
 <g data-name="(self)"><title>(self) — 112.17 ms (5.9%)</title><rect x="489.8" y="52" width="81.8" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="492.8" y="65">(self)</text></g>
-<g data-name="(self)"><title>(self) — 49.87 ms (2.6%)</title><rect x="571.6" y="68" width="36.3" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 32.63 ms (1.7%)</title><rect x="607.9" y="84" width="23.8" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 9.27 ms (0.5%)</title><rect x="631.7" y="100" width="6.8" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 7.9 ms (0.4%)</title><rect x="638.5" y="116" width="5.7" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 1.72 ms (0.1%)</title><rect x="644.2" y="132" width="1.3" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
+<g data-name="(self)"><title>(self) — 49.87 ms (2.6%)</title><rect x="571.6" y="68" width="36.3" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="574.6" y="81"></text></g>
+<g data-name="(self)"><title>(self) — 32.63 ms (1.7%)</title><rect x="607.9" y="84" width="23.8" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="610.9" y="97"></text></g>
+<g data-name="(self)"><title>(self) — 9.27 ms (0.5%)</title><rect x="631.7" y="100" width="6.8" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="634.7" y="113"></text></g>
+<g data-name="(self)"><title>(self) — 7.9 ms (0.4%)</title><rect x="638.5" y="116" width="5.7" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="641.5" y="129"></text></g>
+<g data-name="(self)"><title>(self) — 1.72 ms (0.1%)</title><rect x="644.2" y="132" width="1.3" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="647.2" y="145"></text></g>
 <g data-name="moonflame::demo::bench_strings"><title>moonflame::demo::bench_strings — 628.1 ms (33.2%)&#10;原名: moonflame::demo::bench__strings</title><rect x="645.5" y="196" width="457.8" height="15" fill="rgb(246,188,45)" rx="2" ry="2"/><text x="648.5" y="209">moonflame::demo::bench_strings</text></g>
 <g data-name="moonflame::demo::build_strings"><title>moonflame::demo::build_strings — 521.96 ms (27.6%)&#10;原名: moonflame::demo::build__strings</title><rect x="645.5" y="180" width="380.5" height="15" fill="rgb(242,173,41)" rx="2" ry="2"/><text x="648.5" y="193">moonflame::demo::build_strings</text></g>
 <g data-name="(self)"><title>(self) — 343.03 ms (18.1%)</title><rect x="645.5" y="164" width="250" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="648.5" y="177">(self)</text></g>
-<g data-name="moonbit.string_literal"><title>moonbit.string_literal — 146.59 ms (7.7%)</title><rect x="895.5" y="164" width="106.9" height="15" fill="rgb(221,77,18)" rx="2" ry="2"/></g>
-<g data-name="moonbit.add_string"><title>moonbit.add_string — 21.14 ms (1.1%)</title><rect x="1002.4" y="164" width="15.4" height="15" fill="rgb(241,168,40)" rx="2" ry="2"/></g>
-<g data-name="int::Int::to_string_2einner"><title>int::Int::to_string_2einner — 11.2 ms (0.6%)&#10;原名: int::Int::to__string_2einner</title><rect x="1017.8" y="164" width="8.2" height="15" fill="rgb(240,165,39)" rx="2" ry="2"/></g>
-<g data-name="moonflame::demo::scan_strings"><title>moonflame::demo::scan_strings — 106.14 ms (5.6%)&#10;原名: moonflame4demo13scan__strings</title><rect x="1026" y="180" width="77.3" height="15" fill="rgb(250,210,50)" rx="2" ry="2"/></g>
-<g data-name="string::String::contains"><title>string::String::contains — 103.05 ms (5.4%)</title><rect x="1026" y="164" width="75.1" height="15" fill="rgb(230,119,28)" rx="2" ry="2"/></g>
-<g data-name="string::StringView::contains"><title>string::StringView::contains — 71.64 ms (3.8%)</title><rect x="1026" y="148" width="52.2" height="15" fill="rgb(225,95,22)" rx="2" ry="2"/></g>
-<g data-name="string::StringView::find"><title>string::StringView::find — 39.81 ms (2.1%)</title><rect x="1026" y="132" width="29" height="15" fill="rgb(206,9,2)" rx="2" ry="2"/></g>
-<g data-name="brute_force_find"><title>brute_force_find — 36.68 ms (1.9%)&#10;原名: brute__force__find</title><rect x="1026" y="116" width="26.7" height="15" fill="rgb(233,131,31)" rx="2" ry="2"/></g>
-<g data-name="Eq::not_equal"><title>Eq::not_equal — 20.57 ms (1.1%)&#10;原名: Eq::not__equal</title><rect x="1026" y="100" width="15" height="15" fill="rgb(221,76,18)" rx="2" ry="2"/></g>
-<g data-name="string::StringView::unsafe_get"><title>string::StringView::unsafe_get — 12.86 ms (0.7%)&#10;原名: string::StringView::unsafe__get</title><rect x="1041" y="100" width="9.3" height="15" fill="rgb(208,18,4)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 3.25 ms (0.2%)</title><rect x="1050.3" y="100" width="2.4" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 3.13 ms (0.2%)</title><rect x="1052.7" y="116" width="2.3" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 31.83 ms (1.7%)</title><rect x="1055" y="132" width="23.2" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 31.41 ms (1.7%)</title><rect x="1078.2" y="148" width="22.9" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 3.1 ms (0.2%)</title><rect x="1101.1" y="164" width="2.2" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
+<g data-name="moonbit.string_literal"><title>moonbit.string_literal — 146.59 ms (7.7%)</title><rect x="895.5" y="164" width="106.9" height="15" fill="rgb(221,77,18)" rx="2" ry="2"/><text x="898.5" y="177"></text></g>
+<g data-name="moonbit.add_string"><title>moonbit.add_string — 21.14 ms (1.1%)</title><rect x="1002.4" y="164" width="15.4" height="15" fill="rgb(241,168,40)" rx="2" ry="2"/><text x="1005.4" y="177"></text></g>
+<g data-name="int::Int::to_string_2einner"><title>int::Int::to_string_2einner — 11.2 ms (0.6%)&#10;原名: int::Int::to__string_2einner</title><rect x="1017.8" y="164" width="8.2" height="15" fill="rgb(240,165,39)" rx="2" ry="2"/><text x="1020.8" y="177"></text></g>
+<g data-name="moonflame::demo::scan_strings"><title>moonflame::demo::scan_strings — 106.14 ms (5.6%)&#10;原名: moonflame4demo13scan__strings</title><rect x="1026" y="180" width="77.3" height="15" fill="rgb(250,210,50)" rx="2" ry="2"/><text x="1029" y="193"></text></g>
+<g data-name="string::String::contains"><title>string::String::contains — 103.05 ms (5.4%)</title><rect x="1026" y="164" width="75.1" height="15" fill="rgb(230,119,28)" rx="2" ry="2"/><text x="1029" y="177"></text></g>
+<g data-name="string::StringView::contains"><title>string::StringView::contains — 71.64 ms (3.8%)</title><rect x="1026" y="148" width="52.2" height="15" fill="rgb(225,95,22)" rx="2" ry="2"/><text x="1029" y="161"></text></g>
+<g data-name="string::StringView::find"><title>string::StringView::find — 39.81 ms (2.1%)</title><rect x="1026" y="132" width="29" height="15" fill="rgb(206,9,2)" rx="2" ry="2"/><text x="1029" y="145"></text></g>
+<g data-name="brute_force_find"><title>brute_force_find — 36.68 ms (1.9%)&#10;原名: brute__force__find</title><rect x="1026" y="116" width="26.7" height="15" fill="rgb(233,131,31)" rx="2" ry="2"/><text x="1029" y="129"></text></g>
+<g data-name="Eq::not_equal"><title>Eq::not_equal — 20.57 ms (1.1%)&#10;原名: Eq::not__equal</title><rect x="1026" y="100" width="15" height="15" fill="rgb(221,76,18)" rx="2" ry="2"/><text x="1029" y="113"></text></g>
+<g data-name="string::StringView::unsafe_get"><title>string::StringView::unsafe_get — 12.86 ms (0.7%)&#10;原名: string::StringView::unsafe__get</title><rect x="1041" y="100" width="9.3" height="15" fill="rgb(208,18,4)" rx="2" ry="2"/><text x="1044" y="113"></text></g>
+<g data-name="(self)"><title>(self) — 3.25 ms (0.2%)</title><rect x="1050.3" y="100" width="2.4" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1053.3" y="113"></text></g>
+<g data-name="(self)"><title>(self) — 3.13 ms (0.2%)</title><rect x="1052.7" y="116" width="2.3" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1055.7" y="129"></text></g>
+<g data-name="(self)"><title>(self) — 31.83 ms (1.7%)</title><rect x="1055" y="132" width="23.2" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1058" y="145"></text></g>
+<g data-name="(self)"><title>(self) — 31.41 ms (1.7%)</title><rect x="1078.2" y="148" width="22.9" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1081.2" y="161"></text></g>
+<g data-name="(self)"><title>(self) — 3.1 ms (0.2%)</title><rect x="1101.1" y="164" width="2.2" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1104.1" y="177"></text></g>
 <g data-name="moonflame::demo::bench_sorting"><title>moonflame::demo::bench_sorting — 374.5 ms (19.8%)&#10;原名: moonflame::demo::bench__sorting</title><rect x="1103.3" y="196" width="273" height="15" fill="rgb(221,77,18)" rx="2" ry="2"/><text x="1106.3" y="209">moonflame::demo::bench_sorting</text></g>
-<g data-name="moonflame::demo::bubble_sort"><title>moonflame::demo::bubble_sort — 273.54 ms (14.4%)&#10;原名: moonflame::demo::bubble__sort</title><rect x="1103.3" y="180" width="199.4" height="15" fill="rgb(228,107,25)" rx="2" ry="2"/></g>
-<g data-name="array::Array::at"><title>array::Array::at — 145.73 ms (7.7%)</title><rect x="1103.3" y="164" width="106.3" height="15" fill="rgb(230,115,27)" rx="2" ry="2"/></g>
+<g data-name="moonflame::demo::bubble_sort"><title>moonflame::demo::bubble_sort — 273.54 ms (14.4%)&#10;原名: moonflame::demo::bubble__sort</title><rect x="1103.3" y="180" width="199.4" height="15" fill="rgb(228,107,25)" rx="2" ry="2"/><text x="1106.3" y="193"></text></g>
+<g data-name="array::Array::at"><title>array::Array::at — 145.73 ms (7.7%)</title><rect x="1103.3" y="164" width="106.3" height="15" fill="rgb(230,115,27)" rx="2" ry="2"/><text x="1106.3" y="177"></text></g>
 <g data-name="(self)"><title>(self) — 103.62 ms (5.5%)</title><rect x="1103.3" y="148" width="75.6" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1106.3" y="161">(self)</text></g>
-<g data-name="array::Array::buffer"><title>array::Array::buffer — 42.11 ms (2.2%)</title><rect x="1178.9" y="148" width="30.7" height="15" fill="rgb(210,25,6)" rx="2" ry="2"/></g>
-<g data-name="array::Array::set"><title>array::Array::set — 78.12 ms (4.1%)&#10;原名: array5Array3set</title><rect x="1209.6" y="164" width="56.9" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 52.64 ms (2.8%)</title><rect x="1209.6" y="148" width="38.3" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="array::Array::buffer"><title>array::Array::buffer — 25.48 ms (1.3%)</title><rect x="1247.9" y="148" width="18.6" height="15" fill="rgb(210,25,6)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 49.69 ms (2.6%)</title><rect x="1266.5" y="164" width="36.2" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="moonflame::demo::insertion_sort"><title>moonflame::demo::insertion_sort — 100.96 ms (5.3%)&#10;原名: moonflame::demo::insertion__sort</title><rect x="1302.7" y="180" width="73.6" height="15" fill="rgb(207,12,2)" rx="2" ry="2"/></g>
-<g data-name="array::Array::at"><title>array::Array::at — 46.3 ms (2.4%)</title><rect x="1302.7" y="164" width="33.8" height="15" fill="rgb(230,115,27)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 24.63 ms (1.3%)</title><rect x="1302.7" y="148" width="18" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="array::Array::buffer"><title>array::Array::buffer — 21.67 ms (1.1%)</title><rect x="1320.7" y="148" width="15.8" height="15" fill="rgb(210,25,6)" rx="2" ry="2"/></g>
-<g data-name="array::Array::set"><title>array::Array::set — 37.37 ms (2.0%)&#10;原名: array5Array3set</title><rect x="1336.5" y="164" width="27.2" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 21.68 ms (1.1%)</title><rect x="1336.5" y="148" width="15.8" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="array::Array::buffer"><title>array::Array::buffer — 15.7 ms (0.8%)</title><rect x="1352.3" y="148" width="11.4" height="15" fill="rgb(210,25,6)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 17.29 ms (0.9%)</title><rect x="1363.7" y="164" width="12.6" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="moonflame::demo::matmul"><title>moonflame::demo::matmul — 18.77 ms (1.0%)</title><rect x="1376.3" y="196" width="13.7" height="15" fill="rgb(218,64,15)" rx="2" ry="2"/></g>
-<g data-name="array::Array::at"><title>array::Array::at — 14.15 ms (0.7%)</title><rect x="1376.3" y="180" width="10.3" height="15" fill="rgb(230,115,27)" rx="2" ry="2"/></g>
-<g data-name="array::Array::buffer"><title>array::Array::buffer — 7.86 ms (0.4%)</title><rect x="1376.3" y="164" width="5.7" height="15" fill="rgb(210,25,6)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 6.29 ms (0.3%)</title><rect x="1382" y="164" width="4.6" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
-<g data-name="(self)"><title>(self) — 4.63 ms (0.2%)</title><rect x="1386.6" y="180" width="3.4" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/></g>
+<g data-name="array::Array::buffer"><title>array::Array::buffer — 42.11 ms (2.2%)</title><rect x="1178.9" y="148" width="30.7" height="15" fill="rgb(210,25,6)" rx="2" ry="2"/><text x="1181.9" y="161"></text></g>
+<g data-name="array::Array::set"><title>array::Array::set — 78.12 ms (4.1%)&#10;原名: array5Array3set</title><rect x="1209.6" y="164" width="56.9" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1212.6" y="177"></text></g>
+<g data-name="(self)"><title>(self) — 52.64 ms (2.8%)</title><rect x="1209.6" y="148" width="38.3" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1212.6" y="161"></text></g>
+<g data-name="array::Array::buffer"><title>array::Array::buffer — 25.48 ms (1.3%)</title><rect x="1247.9" y="148" width="18.6" height="15" fill="rgb(210,25,6)" rx="2" ry="2"/><text x="1250.9" y="161"></text></g>
+<g data-name="(self)"><title>(self) — 49.69 ms (2.6%)</title><rect x="1266.5" y="164" width="36.2" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1269.5" y="177"></text></g>
+<g data-name="moonflame::demo::insertion_sort"><title>moonflame::demo::insertion_sort — 100.96 ms (5.3%)&#10;原名: moonflame::demo::insertion__sort</title><rect x="1302.7" y="180" width="73.6" height="15" fill="rgb(207,12,2)" rx="2" ry="2"/><text x="1305.7" y="193"></text></g>
+<g data-name="array::Array::at"><title>array::Array::at — 46.3 ms (2.4%)</title><rect x="1302.7" y="164" width="33.8" height="15" fill="rgb(230,115,27)" rx="2" ry="2"/><text x="1305.7" y="177"></text></g>
+<g data-name="(self)"><title>(self) — 24.63 ms (1.3%)</title><rect x="1302.7" y="148" width="18" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1305.7" y="161"></text></g>
+<g data-name="array::Array::buffer"><title>array::Array::buffer — 21.67 ms (1.1%)</title><rect x="1320.7" y="148" width="15.8" height="15" fill="rgb(210,25,6)" rx="2" ry="2"/><text x="1323.7" y="161"></text></g>
+<g data-name="array::Array::set"><title>array::Array::set — 37.37 ms (2.0%)&#10;原名: array5Array3set</title><rect x="1336.5" y="164" width="27.2" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1339.5" y="177"></text></g>
+<g data-name="(self)"><title>(self) — 21.68 ms (1.1%)</title><rect x="1336.5" y="148" width="15.8" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1339.5" y="161"></text></g>
+<g data-name="array::Array::buffer"><title>array::Array::buffer — 15.7 ms (0.8%)</title><rect x="1352.3" y="148" width="11.4" height="15" fill="rgb(210,25,6)" rx="2" ry="2"/><text x="1355.3" y="161"></text></g>
+<g data-name="(self)"><title>(self) — 17.29 ms (0.9%)</title><rect x="1363.7" y="164" width="12.6" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1366.7" y="177"></text></g>
+<g data-name="moonflame::demo::matmul"><title>moonflame::demo::matmul — 18.77 ms (1.0%)</title><rect x="1376.3" y="196" width="13.7" height="15" fill="rgb(218,64,15)" rx="2" ry="2"/><text x="1379.3" y="209"></text></g>
+<g data-name="array::Array::at"><title>array::Array::at — 14.15 ms (0.7%)</title><rect x="1376.3" y="180" width="10.3" height="15" fill="rgb(230,115,27)" rx="2" ry="2"/><text x="1379.3" y="193"></text></g>
+<g data-name="array::Array::buffer"><title>array::Array::buffer — 7.86 ms (0.4%)</title><rect x="1376.3" y="164" width="5.7" height="15" fill="rgb(210,25,6)" rx="2" ry="2"/><text x="1379.3" y="177"></text></g>
+<g data-name="(self)"><title>(self) — 6.29 ms (0.3%)</title><rect x="1382" y="164" width="4.6" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1385" y="177"></text></g>
+<g data-name="(self)"><title>(self) — 4.63 ms (0.2%)</title><rect x="1386.6" y="180" width="3.4" height="15" fill="rgb(238,153,36)" rx="2" ry="2"/><text x="1389.6" y="193"></text></g>
 </g>
 </svg>

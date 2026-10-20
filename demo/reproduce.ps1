@@ -9,7 +9,6 @@
 # macOS / Linux 请用等价脚本：bash demo/reproduce.sh
 
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $PSScriptRoot
 
 # 原生命令会把进度写到 stderr（moon 的 "Finished."、moon-pprof 的 "[profile]" 行）。
 # 在 Windows PowerShell 5.1 下，stderr 会被折成 ErrorRecord，配合上面的
@@ -27,10 +26,7 @@ function Invoke-Step {
     }
 }
 
-# 把工作区内的 Rust 工具链（含 moon-pprof）挂到 PATH
-$tcBin = Join-Path $root '_toolchain\cargo\bin'
-if (Test-Path $tcBin) { $env:PATH = "$tcBin;E:\mingw64\bin;$env:PATH" }
-
+# moon 与 moon-pprof 必须位于 PATH；不修改用户工具链。
 if (-not (Get-Command moon-pprof -ErrorAction SilentlyContinue)) {
     Write-Error "找不到 moon-pprof。请先安装，或把它放到 PATH 上（安装方式见其仓库说明）。"
 }
