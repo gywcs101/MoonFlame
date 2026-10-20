@@ -1,0 +1,19 @@
+{
+  "upstream": {
+    "repository": "https://github.com/mizchi/moon-pprof",
+    "revision": "bb91eaa8bf35df975b3e3d67b12965202cf5ed39",
+    "sample_path": "docs/samples/main.wasm",
+    "sample_git_blob": "cadc881dc741708eb917f921cf2b107b20fdd6c5",
+    "notice_files": [],
+    "license_sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  "files": {
+    "testdata/demo-baseline.folded": "3601014b338255b5dd0f651cddb757579d8a3ba4fa16cd930ace6883e0e26d2b",
+    "testdata/demo.folded": "994c26111b9edda23d880f154e4393f21d2745aca85feaace34584b1543ebb1f",
+    "testdata/demo.pb.gz": "4297609dff9c2b9bf4baa428730aed5d468a26e31b7df1db1107da6bb86e6378",
+    "testdata/demo.wasm": "8f718b82a052763ac988bbb9148ce782fa40322f790e627f8159456fb3165d82",
+    "testdata/official-sample.pb.gz": "2d00a7474cac28b431611c0fed6c4f43d54274838e212b282038c93f7e517c3c",
+    "testdata/official-sample.wasm": "4ada583e7640f58853dc4792647c5c142160e9c2769f49a419ef4741b1563836",
+    "testdata/stress-recursive.folded": "7e38facef23f441d29562d3f063a11477cd7053a28458a012b35427facbbf701"
+  }
+}
