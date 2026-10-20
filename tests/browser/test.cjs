@@ -9,31 +9,14 @@ const { execFileSync } = require('node:child_process');
 const root = path.resolve(__dirname, '../..');
 const dir = path.join(root, '_build/browser');
 fs.mkdirSync(dir, { recursive: true });
-function findNativeCli() {
-  const wanted = process.platform === 'win32' ? 'main.exe' : 'main';
-  const scan = directory => {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      const candidate = path.join(directory, entry.name);
-      if (entry.isDirectory()) {
-        const found = scan(candidate);
-        if (found) return found;
-      } else if (entry.isFile() && entry.name === wanted &&
-                 candidate.includes(`${path.sep}cmd${path.sep}main${path.sep}`)) {
-        return candidate;
-      }
-    }
-    return undefined;
-  };
-  const found = scan(path.join(root, '_build', 'native'));
-  if (!found) throw new Error('Moon CLI native artifact was not found under _build/native');
-  return found;
-}
-const cli = findNativeCli();
+// Use Moon's public runner instead of depending on private _build layout.
+// Toolchain releases may place native artifacts under different profiles.
+const cli = ['moon', 'run', 'cmd/main', '--'];
 function render(name, data, inverted = false) {
   const input = path.join(dir, name + '.folded');
   const output = path.join(dir, name + '.svg');
   fs.writeFileSync(input, data);
-  execFileSync(cli, [path.relative(root, input), '-o', path.relative(root, output), ...(inverted ? ['--inverted'] : [])], { cwd: root, stdio: ['ignore', 'ignore', 'pipe'] });
+  execFileSync(cli[0], [...cli.slice(1), path.relative(root, input), '-o', path.relative(root, output), ...(inverted ? ['--inverted'] : [])], { cwd: root, stdio: ['ignore', 'ignore', 'pipe'] });
   return output;
 }
 
@@ -91,7 +74,7 @@ function render(name, data, inverted = false) {
       ['flame-diff', ['diff', 'testdata/demo-baseline.folded', 'testdata/demo.folded']],
     ]) {
       const output = path.join(root, 'examples', name + '.svg');
-      execFileSync(cli, [...args, '-o', path.relative(root, output)], { cwd: root, stdio: ['ignore', 'ignore', 'pipe'] });
+      execFileSync(cli[0], [...cli.slice(1), ...args, '-o', path.relative(root, output)], { cwd: root, stdio: ['ignore', 'ignore', 'pipe'] });
       await open(output);
       await page.mouse.move(1599, 999);
       await page.locator('svg').screenshot({ path: path.join(root, 'examples', name + '.png') });
