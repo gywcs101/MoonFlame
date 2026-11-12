@@ -11,6 +11,7 @@
 
 ///|
 /// 一个热点条目：按函数名聚合后的自身耗时。
+#derive(Eq)
 pub struct Hotspot {
   name : String
   /// 该函数在整棵树中的自身耗时合计
@@ -18,8 +19,8 @@ pub struct Hotspot {
   /// 占全部权重的比例
   ratio : Double
   /// 在树中出现的节点数（被多少条不同路径调用）
-  occurrences : Int
-} derive(Eq)
+  occurrences : Int32
+}
 
 ///|
 /// 显式声明 `Eq` 的方法可被当作常规方法调用。
@@ -31,7 +32,7 @@ pub extend Hotspot with Eq::{not_equal, equal}
 /// 聚合用的可变累加器。
 priv struct Acc {
   mut self_time : Double
-  mut occurrences : Int
+  mut occurrences : Int32
 }
 
 ///|
@@ -57,7 +58,7 @@ fn collect(node : Node, acc : Map[String, Acc]) -> Unit {
 
 ///|
 /// 排序规则：自身耗时降序；同值时按名字升序，保证确定性。
-fn compare_hotspots(a : Hotspot, b : Hotspot) -> Int {
+fn compare_hotspots(a : Hotspot, b : Hotspot) -> Int32 {
   if a.self_time > b.self_time {
     -1
   } else if a.self_time < b.self_time {
@@ -76,7 +77,7 @@ fn compare_hotspots(a : Hotspot, b : Hotspot) -> Int {
 /// `top <= 0` 表示不截断，返回全部条目。
 pub fn top_hotspots(
   tree : CallTree,
-  top : Int,
+  top : Int32,
 ) -> Array[Hotspot] raise ValidationError {
   validate_tree(tree)
   let acc : Map[String, Acc] = Map([])

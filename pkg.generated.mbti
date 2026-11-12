@@ -8,9 +8,9 @@ pub const CANVAS_XPAD : Double = 10.0
 
 pub const FRAME_HEIGHT : Double = 16.0
 
-pub fn aggregate(Array[Sample], max_depth? : Int) -> CallTree raise ValidationError
+pub fn aggregate(Array[Sample], max_depth? : Int32) -> CallTree raise ValidationError
 
-pub fn compute_delta(CallTree, CallTree, Int) -> Array[DeltaEntry] raise ValidationError
+pub fn compute_delta(CallTree, CallTree, Int32) -> Array[DeltaEntry] raise ValidationError
 
 pub fn deeper_placeholder() -> String
 
@@ -54,7 +54,7 @@ pub fn render_svg(Layout, min_width? : Double, font_size? : Double, show_labels?
 
 pub fn self_placeholder() -> String
 
-pub fn top_hotspots(CallTree, Int) -> Array[Hotspot] raise ValidationError
+pub fn top_hotspots(CallTree, Int32) -> Array[Hotspot] raise ValidationError
 
 pub fn validate_tree(CallTree) -> Unit raise ValidationError
 
@@ -68,84 +68,93 @@ pub(all) suberror ValidationError {
 }
 
 // Types and methods
+#derive(Eq)
 pub struct CallTree {
   roots : Array[Node]
   total : Double
-} derive(Eq)
+}
 pub fn CallTree::equal(Self, Self) -> Bool
 pub fn CallTree::max_delta(Self) -> Double
 pub fn CallTree::not_equal(Self, Self) -> Bool
 
+#derive(Eq)
 pub struct DeltaEntry {
   name : String
   before : Double
   after : Double
   change : Double
   ratio : Double
-} derive(Eq)
+}
 pub fn DeltaEntry::equal(Self, Self) -> Bool
 pub fn DeltaEntry::not_equal(Self, Self) -> Bool
 
+#derive(Eq)
 pub struct Hotspot {
   name : String
   self_time : Double
   ratio : Double
-  occurrences : Int
-} derive(Eq)
+  occurrences : Int32
+}
 pub fn Hotspot::equal(Self, Self) -> Bool
 pub fn Hotspot::not_equal(Self, Self) -> Bool
 
+#derive(Eq)
 pub struct Layout {
   rects : Array[Rect]
   width : Double
   row_height : Double
-  max_depth : Int
+  max_depth : Int32
   total : Double
   max_delta : Double
   inverted : Bool
-} derive(Eq)
+}
 pub fn Layout::equal(Self, Self) -> Bool
 pub fn Layout::height(Self) -> Double
 pub fn Layout::not_equal(Self, Self) -> Bool
-pub fn Layout::row_count(Self) -> Int
+pub fn Layout::row_count(Self) -> Int32
 
+#derive(Eq)
 pub struct Node {
   name : String
   value : Double
   children : Array[Node]
   delta : Double?
   self_delta : Double?
-} derive(Eq)
+}
 pub fn Node::child(Self, String) -> Self?
 pub fn Node::equal(Self, Self) -> Bool
 pub fn Node::not_equal(Self, Self) -> Bool
 pub fn Node::self_ratio(Self, Double) -> Double
 pub fn Node::self_time(Self) -> Double
 
+#derive(Eq)
 pub struct ParseIssue {
-  line : Int
+  line : Int32
   kind : ParseIssueKind
-} derive(Eq)
+}
 pub fn ParseIssue::equal(Self, Self) -> Bool
 pub fn ParseIssue::not_equal(Self, Self) -> Bool
 
+#derive(Eq)
 pub(all) enum ParseIssueKind {
   MissingWeight
   InvalidNumber
   NonFiniteWeight
   NegativeWeight
-} derive(Eq)
+}
 pub fn ParseIssueKind::equal(Self, Self) -> Bool
 pub fn ParseIssueKind::not_equal(Self, Self) -> Bool
 
+#derive(Eq)
 pub struct ParseResult {
   samples : Array[Sample]
-  skipped_lines : Int
+  skipped_lines : Int32
   diagnostics : Array[ParseIssue]
-} derive(Eq)
+}
 pub fn ParseResult::equal(Self, Self) -> Bool
 pub fn ParseResult::not_equal(Self, Self) -> Bool
 
+#derive(Eq)
 pub struct Rect {
   x : Double
   mut y : Double
@@ -153,34 +162,37 @@ pub struct Rect {
   height : Double
   name : String
   value : Double
-  depth : Int
+  depth : Int32
   delta : Double?
-} derive(Eq)
+}
 pub fn Rect::equal(Self, Self) -> Bool
 pub fn Rect::not_equal(Self, Self) -> Bool
 
+#derive(Eq)
 pub struct Relation {
   label : String
   value : Double
   ratio : Double
-} derive(Eq)
+}
 pub fn Relation::equal(Self, Self) -> Bool
 pub fn Relation::not_equal(Self, Self) -> Bool
 
+#derive(Eq)
 pub struct Sample {
   frames : Array[String]
   weight : Double
-} derive(Eq)
+}
 pub fn Sample::equal(Self, Self) -> Bool
 pub fn Sample::not_equal(Self, Self) -> Bool
 
+#derive(Eq)
 pub(all) enum WeightUnit {
   Count
   Nanoseconds
   Microseconds
   Milliseconds
   Seconds
-} derive(Eq)
+}
 pub fn WeightUnit::equal(Self, Self) -> Bool
 pub fn WeightUnit::label(Self) -> String
 pub fn WeightUnit::not_equal(Self, Self) -> Bool

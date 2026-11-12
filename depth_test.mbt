@@ -12,7 +12,7 @@
 
 ///|
 /// 以该节点为根的子树的最大层数。
-fn depth_of(node : @moonflame.Node) -> Int {
+fn depth_of(node : @moonflame.Node) -> Int32 {
   let mut deepest = 0
   for child in node.children {
     let d = depth_of(child)

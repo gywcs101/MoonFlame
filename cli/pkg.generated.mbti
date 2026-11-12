@@ -7,9 +7,9 @@ import {
 }
 
 // Values
-pub const DEFAULT_MAX_DEPTH : Int = 32
+pub const DEFAULT_MAX_DEPTH : Int32 = 32
 
-pub const DEFAULT_TOP : Int = 10
+pub const DEFAULT_TOP : Int32 = 10
 
 pub const DEFAULT_WIDTH : Double = 1400.0
 
@@ -22,28 +22,30 @@ pub fn parse_config(ArrayView[String]) -> Config raise
 // Errors
 
 // Types and methods
+#derive(Eq)
 pub(all) enum Action {
   Render
   Diff
-  Hotspots(Int)
+  Hotspots(Int32)
   Callers(String)
   Callees(String)
-  Delta(Int)
+  Delta(Int32)
   Filter(String)
-} derive(Eq)
+}
 pub fn Action::equal(Self, Self) -> Bool
 pub fn Action::not_equal(Self, Self) -> Bool
 
+#derive(Eq)
 pub struct Config {
   action : Action
   input : String
   second : String?
   out : String?
-  max_depth : Int
+  max_depth : Int32
   width : Double
   unit : @moonflame.WeightUnit
   inverted : Bool
-} derive(Eq)
+}
 pub fn Config::equal(Self, Self) -> Bool
 pub fn Config::not_equal(Self, Self) -> Bool
 

@@ -28,7 +28,7 @@ with tempfile.TemporaryDirectory(prefix='moonflame-consumer-') as directory:
         'name = "moonflame-tests/consumer"\n'
         'version = "0.0.0"\n'
         'preferred_target = "native"\n'
-        'import { "gywcs101/moonflame@0.2.0" }\n',
+        'import { "gywcs101/moonflame@0.2.1" }\n',
         encoding='utf-8',
     )
     (consumer / 'moon.pkg').write_text('import { "gywcs101/moonflame", }\n', encoding='utf-8')

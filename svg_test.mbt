@@ -4,7 +4,7 @@
 /// 渲染是纯函数：同一份布局必须逐字节产出同一份文本，否则图片无法做快照对比。
 
 ///|
-fn svg_of(text : String, max_depth : Int) -> String raise {
+fn svg_of(text : String, max_depth : Int32) -> String raise {
   let tree = tree_of(text, max_depth)
   @moonflame.render_svg(
     @moonflame.layout(tree, 1000.0, @moonflame.FRAME_HEIGHT),
@@ -13,7 +13,7 @@ fn svg_of(text : String, max_depth : Int) -> String raise {
 
 ///|
 /// 帧矩形的个数。画布上还有一个铺底的背景 `<rect>`，不能算进帧里。
-fn frame_count(svg : String) -> Int {
+fn frame_count(svg : String) -> Int32 {
   count_of(svg, "<g data-name=")
 }
 

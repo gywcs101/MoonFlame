@@ -16,6 +16,7 @@
 ///
 /// 注意名字**不能**叫 `Unit`：那是 MoonBit 的内置类型，重名会遮蔽它，
 /// 导致全仓库所有 `-> Unit` 的函数都报出「has type Unit, wanted Unit」这类怪错。
+#derive(Eq)
 pub(all) enum WeightUnit {
   /// 采样计数（`perf` 等）。显示为带千位分隔的整数，不带单位后缀。
   Count
@@ -24,7 +25,7 @@ pub(all) enum WeightUnit {
   Microseconds
   Milliseconds
   Seconds
-} derive(Eq)
+}
 
 ///|
 /// 显式声明 `Eq` 的方法可被当作常规方法调用。

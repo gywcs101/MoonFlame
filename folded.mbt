@@ -17,10 +17,11 @@
 /// 一个采样样本：一条调用栈 + 权重。
 ///
 /// `frames` 自顶向下排列，`frames[0]` 为根帧。
+#derive(Eq)
 pub struct Sample {
   frames : Array[String]
   weight : Double
-} derive(Eq)
+}
 
 ///|
 /// 显式声明 `Eq` 的方法可被当作常规方法调用。
@@ -30,28 +31,31 @@ pub extend Sample with Eq::{not_equal, equal}
 
 ///|
 /// 解析结果。`skipped_lines` 记录非空但无法解析的行数，便于调用方提示用户。
+#derive(Eq)
 pub struct ParseResult {
   samples : Array[Sample]
-  skipped_lines : Int
+  skipped_lines : Int32
   diagnostics : Array[ParseIssue]
-} derive(Eq)
+}
 
 ///|
+#derive(Eq)
 pub(all) enum ParseIssueKind {
   MissingWeight
   InvalidNumber
   NonFiniteWeight
   NegativeWeight
-} derive(Eq)
+}
 
 ///|
 pub extend ParseIssueKind with Eq::{not_equal, equal}
 
 ///|
+#derive(Eq)
 pub struct ParseIssue {
-  line : Int
+  line : Int32
   kind : ParseIssueKind
-} derive(Eq)
+}
 
 ///|
 pub extend ParseIssue with Eq::{not_equal, equal}
@@ -91,8 +95,8 @@ pub fn parse_line(line : StringView) -> Sample? {
   }
   // 最后一个空格分隔「栈」与「权重」
   guard trimmed.rev_find(" ") is Some(sep) else { return None }
-  let stack_part = trimmed.view(end_offset=sep)
-  let weight_part = trimmed.view(start_offset=sep + 1)
+  let stack_part = trimmed.clamped_view(end=sep)
+  let weight_part = trimmed.clamped_view(start=sep + 1)
   guard parse_weight(weight_part) is Some(weight) else { return None }
   let frames : Array[String] = []
   for raw in stack_part.split(";") {
@@ -124,7 +128,7 @@ pub fn parse_folded(text : String) -> ParseResult {
             None => MissingWeight
             Some(sep) => {
               let result : Result[Double, Error] = Ok(
-                @string.parse_double(trimmed.view(start_offset=sep + 1)),
+                @string.parse_double(trimmed.clamped_view(start=sep + 1)),
               ) catch {
                 error => Err(error)
               }

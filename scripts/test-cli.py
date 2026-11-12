@@ -33,7 +33,7 @@ def main():
         assert result.returncode == status, (argv, result.returncode, result.stdout[:500], result.stderr[:500])
         return result
 
-    assert '0.2.0' in run('--version').stdout
+    assert '0.2.1' in run('--version').stdout
     assert 'Usage:' in run('--help').stdout
     run(status=2)
     run('nonexistent-file.folded', status=1)

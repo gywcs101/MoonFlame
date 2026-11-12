@@ -48,7 +48,7 @@ fn collect_problems(
 
 ///|
 /// 对一棵树做全面体检，返回所有违规描述。
-fn problems_of(text : String, max_depth : Int) -> Array[String] raise {
+fn problems_of(text : String, max_depth : Int32) -> Array[String] raise {
   let tree = @moonflame.aggregate(
     @moonflame.parse_folded(text).samples,
     max_depth~,
@@ -70,7 +70,7 @@ fn problems_of(text : String, max_depth : Int) -> Array[String] raise {
 
 ///|
 /// 断言在给定输入与限深下不存在不变量违规；失败时打印具体违规内容。
-fn assert_invariants(text : String, max_depth : Int) -> Unit raise {
+fn assert_invariants(text : String, max_depth : Int32) -> Unit raise {
   let problems = problems_of(text, max_depth)
   if problems.length() > 0 {
     fail("invariant violations: " + problems.join(" | "))

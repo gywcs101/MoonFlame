@@ -12,7 +12,7 @@ GitHub README 的图片引用只显示静态图，不会执行 SVG 内的脚本�
 
 ## 环境与快速验证
 
-当前版本：`0.2.0`。需要 `moonc >= 0.10.14`，首次安装后执行 `moon update`。
+当前版本：`0.2.1`。本次兼容性检查使用 moon 0.1.20261104、moonc 0.10.20；首次安装后执行 `moon update`。Windows 原生构建需要 MSVC C++ 工具和 Windows SDK。
 生成端需要 MoonBit 工具链；查看 SVG 只需要浏览器。核心库没有第三方依赖；
 命令行使用官方 `moonbitlang/x@0.4.45` 读写文件、设置退出状态。
 
@@ -160,7 +160,7 @@ moon run cmd/main -- delta testdata/demo-baseline.folded testdata/demo.folded
 
 ## 作为库使用
 
-注册表模块为 `gywcs101/moonflame`；0.2.0 为本次整改准备的版本，正式发布状态以
+注册表模块为 `gywcs101/moonflame`；发布状态以
 [mooncakes 模块页](https://mooncakes.io/docs/gywcs101/moonflame)为准。
 发布后可执行 `moon add gywcs101/moonflame`。
 

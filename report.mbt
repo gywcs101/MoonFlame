@@ -7,6 +7,7 @@
 
 ///|
 /// 一条调用关系条目。
+#derive(Eq)
 pub struct Relation {
   /// 可读的标签：callers 是祖先链，callees 是子函数名
   label : String
@@ -14,7 +15,7 @@ pub struct Relation {
   value : Double
   /// 占全图的比例
   ratio : Double
-} derive(Eq)
+}
 
 ///|
 /// 显式声明 `Eq` 的方法可被当作常规方法调用。
@@ -24,7 +25,7 @@ pub extend Relation with Eq::{not_equal, equal}
 
 ///|
 /// 按权重降序、同值按标签升序，保证输出确定。
-fn compare_relations(a : Relation, b : Relation) -> Int {
+fn compare_relations(a : Relation, b : Relation) -> Int32 {
   if a.value > b.value {
     -1
   } else if a.value < b.value {
@@ -181,7 +182,7 @@ pub fn render_relations(
   wanted : String,
   kind : String,
   unit : WeightUnit,
-  matched? : Bool = false,
+  matched~ : Bool = false,
 ) -> String {
   let sb = StringBuilder()
   if relations.length() == 0 {
@@ -213,6 +214,7 @@ pub fn render_relations(
 
 ///|
 /// 一个函数在两份剖面之间的自身耗时变化。
+#derive(Eq)
 pub struct DeltaEntry {
   name : String
   before : Double
@@ -221,7 +223,7 @@ pub struct DeltaEntry {
   change : Double
   /// 变化量占基线总量的比例
   ratio : Double
-} derive(Eq)
+}
 
 ///|
 /// 显式声明 `Eq` 的方法可被当作常规方法调用。
@@ -231,7 +233,7 @@ pub extend DeltaEntry with Eq::{not_equal, equal}
 
 ///|
 /// 按变化量降序（变慢最多的在前），同值按名字升序。
-fn compare_deltas(a : DeltaEntry, b : DeltaEntry) -> Int {
+fn compare_deltas(a : DeltaEntry, b : DeltaEntry) -> Int32 {
   if a.change > b.change {
     -1
   } else if a.change < b.change {
@@ -251,7 +253,7 @@ fn compare_deltas(a : DeltaEntry, b : DeltaEntry) -> Int {
 pub fn compute_delta(
   before : CallTree,
   after : CallTree,
-  top : Int,
+  top : Int32,
 ) -> Array[DeltaEntry] raise ValidationError {
   validate_tree(before)
   validate_tree(after)

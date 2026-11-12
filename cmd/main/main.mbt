@@ -51,7 +51,7 @@ fn parsed_file(path : String) -> (String, @moonflame.ParseResult) raise {
 }
 
 ///|
-fn tree_of_file(path : String, max_depth : Int) -> @moonflame.CallTree raise {
+fn tree_of_file(path : String, max_depth : Int32) -> @moonflame.CallTree raise {
   let (_, parsed) = parsed_file(path)
   let tree = @moonflame.aggregate(parsed.samples, max_depth~)
   if tree.total <= 0.0 {

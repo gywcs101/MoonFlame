@@ -5,7 +5,7 @@ import hashlib
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-archive = ROOT / '_build/publish/gywcs101-moonflame-0.2.0.zip'
+archive = ROOT / '_build/publish/gywcs101-moonflame-0.2.1.zip'
 with zipfile.ZipFile(archive) as package:
     names = package.namelist()
     def member(suffix):

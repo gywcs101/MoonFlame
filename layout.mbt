@@ -15,6 +15,7 @@
 
 ///|
 /// 一个待绘制的矩形。
+#derive(Eq)
 pub struct Rect {
   x : Double
   /// 纵向位置。由 `layout` 在排布完成后统一确定：
@@ -25,10 +26,10 @@ pub struct Rect {
   name : String
   /// 累计权重；合成项（自身耗时）则为该帧的自身耗时
   value : Double
-  depth : Int
+  depth : Int32
   /// 差异模式下的变化量；普通模式下为 `None`
   delta : Double?
-} derive(Eq)
+}
 
 ///|
 /// 显式声明 `Eq` 的方法可被当作常规方法调用。
@@ -38,6 +39,7 @@ pub extend Rect with Eq::{not_equal, equal}
 
 ///|
 /// 布局结果。渲染器拿到的布局自带完整几何信息，无需再传画布参数。
+#derive(Eq)
 pub struct Layout {
   rects : Array[Rect]
   /// 画布宽度，与传入值一致
@@ -45,7 +47,7 @@ pub struct Layout {
   /// 每行高度，与传入值一致
   row_height : Double
   /// 最深的深度下标（渲染高度为 `(max_depth + 1) * row_height`）
-  max_depth : Int
+  max_depth : Int32
   /// 全部权重之和，用于计算占比
   total : Double
   /// 差异模式下最大的变化量绝对值，用于颜色归一化；非差异模式为 0
@@ -53,7 +55,7 @@ pub struct Layout {
   /// 纵向方向：`false` 火焰图（根在底部），`true` 冰柱图（根在顶部）。
   /// 交互脚本判断「祖先在上还是在下」时需要它。
   inverted : Bool
-} derive(Eq)
+}
 
 ///|
 /// 显式声明 `Eq` 的方法可被当作常规方法调用。
@@ -77,7 +79,7 @@ priv struct Item {
 
 ///|
 /// 排序规则：值降序；同值时按名字升序，保证确定性。
-fn compare_items(a : Item, b : Item) -> Int {
+fn compare_items(a : Item, b : Item) -> Int32 {
   if a.value > b.value {
     -1
   } else if a.value < b.value {
@@ -93,11 +95,11 @@ fn layout_node(
   node : Node,
   x0 : Double,
   x1 : Double,
-  depth : Int,
+  depth : Int32,
   row_height : Double,
   rects : Array[Rect],
 ) -> Unit {
-  let pending : Array[(Node?, String, Double, Double, Double, Int, Double?)] = [
+  let pending : Array[(Node?, String, Double, Double, Double, Int32, Double?)] = [
     (Some(node), node.name, node.value, x0, x1, depth, node.delta),
   ]
   while pending.length() > 0 {
@@ -129,7 +131,7 @@ fn layout_node(
       items.push({ name: self_placeholder(), value: own, node: None, })
     }
     items.sort_by(compare_items)
-    let tasks : Array[(Node?, String, Double, Double, Double, Int, Double?)] = []
+    let tasks : Array[(Node?, String, Double, Double, Double, Int32, Double?)] = []
     let mut cursor = left
     for i = 0; i < items.length(); i = i + 1 {
       let item = items[i]
@@ -243,7 +245,7 @@ pub fn layout(
 
 ///|
 /// 需要绘制的行数（= 最深深度 + 1）。
-pub fn Layout::row_count(self : Layout) -> Int {
+pub fn Layout::row_count(self : Layout) -> Int32 {
   if self.rects.length() == 0 {
     0
   } else {

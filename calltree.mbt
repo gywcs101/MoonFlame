@@ -12,6 +12,7 @@
 
 ///|
 /// 调用树节点。`children` 已排序，可直接用于布局。
+#derive(Eq)
 pub struct Node {
   name : String
   /// 累计权重，包含所有子节点
@@ -22,7 +23,7 @@ pub struct Node {
   delta : Double?
   /// Change in this frame's own weight, calculated before dropping baseline-only children.
   self_delta : Double?
-} derive(Eq)
+}
 
 ///|
 /// 显式声明 `Eq` 的两个方法可被当作常规方法调用。
@@ -34,12 +35,13 @@ pub extend Node with Eq::{not_equal, equal}
 
 ///|
 /// 聚合结果。
+#derive(Eq)
 pub struct CallTree {
   /// 根节点，已排序。格式允许出现多个根（如多线程采样），真实数据通常只有一个
   roots : Array[Node]
   /// 所有样本权重之和
   total : Double
-} derive(Eq)
+}
 
 ///|
 /// 显式声明 `Eq` 的方法可被当作常规方法调用。
@@ -97,9 +99,9 @@ fn child_of(node : Builder, name : String) -> Builder {
 fn insert_path(
   node : Builder,
   frames : Array[String],
-  index : Int,
+  index : Int32,
   weight : Double,
-  max_depth : Int,
+  max_depth : Int32,
 ) -> Unit {
   let mut current = node
   current.value = current.value + weight
@@ -116,7 +118,7 @@ fn insert_path(
 
 ///|
 /// 排序规则：value 降序；同值时按 name 升序，消除排序的不确定性。
-fn compare_nodes(a : Node, b : Node) -> Int {
+fn compare_nodes(a : Node, b : Node) -> Int32 {
   if a.value > b.value {
     -1
   } else if a.value < b.value {
@@ -175,8 +177,8 @@ fn index_by_name(nodes : Array[Node]) -> Map[String, Node] {
 /// 递归标注变化量：以 `baseline` 为基线，给 `nodes` 中每个节点算出差值。
 fn annotate(nodes : Array[Node], baseline : Array[Node]) -> Array[Node] {
   // Flatten first, then rebuild bottom-up without recursive host calls.
-  let flat : Array[(Node, Node?, Int)] = []
-  let pending : Array[(Node, Node?, Int)] = []
+  let flat : Array[(Node, Node?, Int32)] = []
+  let pending : Array[(Node, Node?, Int32)] = []
   let baseline_index = index_by_name(baseline)
   for i = nodes.length() - 1; i >= 0; i = i - 1 {
     pending.push((nodes[i], baseline_index.get(nodes[i].name), -1))
@@ -274,7 +276,7 @@ pub fn CallTree::max_delta(self : CallTree) -> Double {
 /// 十几万像素高的图，因此渲染前必须限深——这是 CLI 默认行为。
 pub fn aggregate(
   samples : Array[Sample],
-  max_depth? : Int,
+  max_depth? : Int32,
 ) -> CallTree raise ValidationError {
   let limit = match max_depth {
     Some(depth) => depth

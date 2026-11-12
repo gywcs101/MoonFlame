@@ -9,22 +9,23 @@
 
 ///|
 /// 本次调用要做什么。
+#derive(Eq)
 pub(all) enum Action {
   /// 默认：把输入渲染成 SVG（配合 `--out`）
   Render
   /// 差异渲染：对比两份剖面
   Diff
   /// 文本热点榜
-  Hotspots(Int)
+  Hotspots(Int32)
   /// 谁调用了这个函数
   Callers(String)
   /// 这个函数调用了谁
   Callees(String)
   /// 两份剖面的差异文本排行
-  Delta(Int)
+  Delta(Int32)
   /// 按归一化子串过滤栈，输出折叠栈文本
   Filter(String)
-} derive(Eq)
+}
 
 ///|
 /// 显式声明 `Eq` 的方法可被当作常规方法调用。
@@ -34,6 +35,7 @@ pub extend Action with Eq::{not_equal, equal}
 
 ///|
 /// 解析后的命令配置。
+#derive(Eq)
 pub struct Config {
   /// 要执行的动作
   action : Action
@@ -44,14 +46,14 @@ pub struct Config {
   /// 输出路径；不传则只打印报告 / 只输出到标准输出
   out : String?
   /// 每个栈最多保留的帧数，`0` 表示不限制
-  max_depth : Int
+  max_depth : Int32
   /// 画布宽度（像素）
   width : Double
   /// 权重单位
   unit : @moonflame.WeightUnit
   /// 冰柱方向（根在顶部）；默认为火焰图方向（根在底部）
   inverted : Bool
-} derive(Eq)
+}
 
 ///|
 /// 显式声明 `Eq` 的方法可被当作常规方法调用。
@@ -61,7 +63,7 @@ pub extend Config with Eq::{not_equal, equal}
 
 ///|
 /// 默认深度上限：真实递归栈可达数千层，不限深画出来的图没法看。
-pub const DEFAULT_MAX_DEPTH : Int = 32
+pub const DEFAULT_MAX_DEPTH : Int32 = 32
 
 ///|
 /// 默认画布宽度。
@@ -69,7 +71,7 @@ pub const DEFAULT_WIDTH : Double = 1400.0
 
 ///|
 /// 默认热点条数。
-pub const DEFAULT_TOP : Int = 10
+pub const DEFAULT_TOP : Int32 = 10
 
 ///|
 /// 输出路径选项。各子命令共用。
@@ -243,7 +245,7 @@ pub fn command() -> @argparse.Command {
   @argparse.Command(
     "moonflame",
     about="Render folded stack profiles into interactive SVG flame graphs",
-    version="0.2.0",
+    version="0.2.1",
     options=render_options(),
     flags=[inverted_flag()],
     positionals=[
@@ -262,8 +264,8 @@ pub fn command() -> @argparse.Command {
 fn int_option(
   values : Map[String, Array[String]],
   key : String,
-  fallback : Int,
-) -> Int raise {
+  fallback : Int32,
+) -> Int32 raise {
   let value = match values.get(key) {
     Some([text, ..]) =>
       @string.parse_int(text) catch {

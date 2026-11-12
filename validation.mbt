@@ -108,7 +108,7 @@ fn validate_layout(layout : Layout) -> Unit raise ValidationError {
   if layout.max_depth < 0 {
     raise InvalidGeometry("negative depth")
   }
-  let path : Array[Int] = []
+  let path : Array[Int32] = []
   let covered : Array[Double] = Array::make(layout.rects.length(), 0.0)
   let next_x : Array[Double] = Array::make(layout.rects.length(), 0.0)
   let mut root_right = 0.0

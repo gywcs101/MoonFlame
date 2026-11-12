@@ -7,7 +7,7 @@
 /// 从折叠栈文本构造调用树。
 ///
 /// `max_depth = 0` 表示不限制深度。
-fn tree_of(text : String, max_depth : Int) -> @moonflame.CallTree raise {
+fn tree_of(text : String, max_depth : Int32) -> @moonflame.CallTree raise {
   @moonflame.aggregate(@moonflame.parse_folded(text).samples, max_depth~)
 }
 
@@ -31,7 +31,7 @@ fn find_rect(
 
 ///|
 /// 统计子串出现的次数，用例里用来数 SVG 元素个数。
-fn count_of(text : String, needle : String) -> Int {
+fn count_of(text : String, needle : String) -> Int32 {
   let step = if needle.length() > 0 { needle.length() } else { 1 }
   let mut count = 0
   let mut start = 0
